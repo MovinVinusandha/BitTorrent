@@ -8,7 +8,10 @@ def main():
     torrent_read = TorrentRead(torrent_file)
 
     if command == "read":
-        print("torrent dict :", torrent_read.decode_bencode())
+        data = torrent_read.get_data()
+        print(data)
+
+
 
 if __name__ == "__main__":
     main()
