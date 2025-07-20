@@ -44,3 +44,46 @@ class Peers:
     def get_peers_data(self):
         response = requests.get(self.url_params()["url"], self.url_params()["params"])
         return response.content
+
+    def gen_peers_ip(self):
+        tracker_response_decode = bencodepy.decode(self.get_peers_data())
+        string_dict = self.torrent_read.bytes_to_str_dict(tracker_response_decode)
+        peers_value_list = list(string_dict["peers"])
+
+        all_ip_port_bytes_list = []
+        for i in range(0, len(peers_value_list), 6):
+            all_ip_port_bytes_list += [[item for item in peers_value_list[i: i + 6]]]
+
+        complete_ip_list = []
+        for ip_port_bytes_list in all_ip_port_bytes_list:
+            complete_ip = ""
+            for i in range(0, 4):
+                complete_ip += f"{ip_port_bytes_list[i]}."
+                if i == 3:
+                    complete_ip += str(int.from_bytes(ip_port_bytes_list[4:6], byteorder='big', signed=False))
+            complete_ip_list.append(complete_ip)
+
+        return [f"{ip_port[:-6:]}:{ip_port.split(".")[-1]}" for ip_port in complete_ip_list]
+
+    def gen_peer_data(self):
+        tracker_response_decode = bencodepy.decode(self.get_peers_data())
+        string_dict = self.torrent_read.bytes_to_str_dict(tracker_response_decode)
+
+        complete = string_dict["complete"]
+        incomplete = string_dict["incomplete"]
+        interval = string_dict["interval"]
+        min_interval = string_dict["min interval"]
+
+        return {"complete": complete,
+                "incomplete": incomplete,
+                "interval": interval,
+                "min interval": min_interval,
+                }
+
+    def get_data(self):
+        peers_ip = self.gen_peers_ip()
+        peers_data = self.gen_peer_data()
+
+        return {"data": peers_data,
+                "ip": peers_ip
+                }

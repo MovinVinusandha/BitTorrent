@@ -19,7 +19,7 @@ def main():
         print(hash_data)
 
     elif command == "download":
-        peers_data = peers.get_peers_data()
+        peers_data = peers.get_data()
         print(peers_data)
 
 
