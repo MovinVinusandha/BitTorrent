@@ -2,7 +2,8 @@ import sys
 from app.torrentFile import TorrentRead
 from app.hashGen import Hash
 from app.peers import Peers
-from app.handshakeMsg import Handshake
+from app.handshakeMsg import HandshakeMsg
+from app.download import Download
 
 def main():
     command = sys.argv[1]
@@ -11,7 +12,8 @@ def main():
     torrent_read = TorrentRead(torrent_file)
     hash = Hash()
     peers = Peers()
-    handshake = Handshake()
+    handshake_msg = HandshakeMsg()
+    download = Download()
 
     if command == "read":
         torrent_data = torrent_read.get_data()
@@ -21,8 +23,10 @@ def main():
         print(hash_data)
 
     elif command == "download":
-        handshake_msg = handshake.handshake_msg()
-        print(handshake_msg)
+        handshake_data = handshake_msg.handshake_msg()
+        print(handshake_data)
+
+        download.handshake_connection()
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from app.hashGen import Hash
 from app.peers import Peers
 from app.torrentFile import TorrentRead
 
-class Handshake:
+class HandshakeMsg:
     def __init__(self):
         torrent_file = sys.argv[2]
         self.torrent_read = TorrentRead(torrent_file)
