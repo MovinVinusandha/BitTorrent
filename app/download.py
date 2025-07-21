@@ -28,9 +28,24 @@ class Download:
                 bitfield = soc.recv(68)
                 print(self.decode_bitfield(bitfield))
 
+                msg = self.recv_exact(soc, 5)
+
+                length, msg_id = struct.unpack(">IB", msg)
+                if msg_id != 1:
+                    raise Exception("Expected unchoke")
+
             else:
                 print("info hash not equal")
 
     def decode_bitfield(self, data):
         bitfield_bytes = data[5:]
         return ''.join(f'{byte:08b}' for byte in bitfield_bytes)
+
+    def recv_exact(self, soc, total_len):
+        data = b''
+        while len(data) < total_len:
+            chunk = soc.recv(total_len - len(data))
+            if not chunk:
+                raise Exception("Connection closed unexpectedly")
+            data += chunk
+        return data
