@@ -1,4 +1,5 @@
 import socket
+import struct
 
 from app.handshakeMsg import HandshakeMsg
 from app.peers import Peers
@@ -16,4 +17,20 @@ class Download:
 
             handshake_reply = soc.recv(68)
 
+            protocol_str_len, protocol_str, reserved_bytes, info_hash, peer_id = struct.unpack(
+                f'b{self.handshake.protocol_str_len}s8s20s20s',
+                handshake_reply
+            )
 
+            if info_hash == self.handshake.info_hash:
+                msg = struct.pack("Ib", 1, 2)
+                soc.send(msg)
+                bitfield = soc.recv(68)
+                print(self.decode_bitfield(bitfield))
+
+            else:
+                print("info hash not equal")
+
+    def decode_bitfield(self, data):
+        bitfield_bytes = data[5:]
+        return ''.join(f'{byte:08b}' for byte in bitfield_bytes)

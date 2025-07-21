@@ -23,9 +23,6 @@ def main():
         print(hash_data)
 
     elif command == "download":
-        handshake_data = handshake_msg.handshake_msg()
-        print(handshake_data)
-
         download.handshake_connection()
 
 
