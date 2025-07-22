@@ -1,11 +1,18 @@
+import hashlib
 import socket
 import struct
+import sys
 
+from app.hashGen import Hash
+from app.torrentFile import TorrentRead
 from app.handshakeMsg import HandshakeMsg
 from app.peers import Peers
 
 class Download:
     def __init__(self):
+        self.torrent_file = sys.argv[2]
+        self.torrent_read = TorrentRead(self.torrent_file)
+        self.hash = Hash()
         self.peers = Peers()
         self.handshake = HandshakeMsg()
         self.ip, self.port = self.peers.gen_peers_ip()[0].split(":")
@@ -33,6 +40,44 @@ class Download:
                 length, msg_id = struct.unpack(">IB", msg)
                 if msg_id != 1:
                     raise Exception("Expected unchoke")
+
+                full_length = self.torrent_read.get_data()["length"]
+                piece_index = 0
+                piece_length = self.torrent_read.get_data()["piece length"]
+                block_size = 16384
+
+                full_file = b""
+                for begin in range(0, piece_length, block_size):
+                    block_len = min(block_size, piece_length - begin)
+                    msg = struct.pack(">IbIII", 13, 6, piece_index, begin, block_len)
+                    soc.sendall(msg)
+                    data = self.recv_exact(soc, 13 + block_len)
+
+                    block = data[13:]
+
+                    full_file += block
+
+                msg = struct.pack(">IbI", 5, 4, piece_index)
+                soc.sendall(msg)
+
+                sh1 = hashlib.sha1()
+                sh1.update(full_file)
+                full_hash = sh1.hexdigest()
+                piece_hash_list = self.hash.get_data()["pieces hash"]
+                if full_hash == piece_hash_list[piece_index]:
+                    print("--Piece Hash validate successfully--")
+                else:
+                    print("--Piece Hash validate unsuccessfully--")
+
+                with open("./full file.txt", "wb") as f:
+                    f.write(full_file)
+                    print("--File create successfully--")
+
+                with open("./full file.txt", "rb") as f:
+                    file = f.read()
+                    print("\n======================\tFile\t======================\n")
+                    print(file)
+
 
             else:
                 print("info hash not equal")
