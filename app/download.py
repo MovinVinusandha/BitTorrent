@@ -33,54 +33,51 @@ class Download:
                 msg = struct.pack("Ib", 1, 2)
                 soc.send(msg)
                 bitfield = soc.recv(68)
-                print(self.decode_bitfield(bitfield))
 
                 msg = self.recv_exact(soc, 5)
-
                 length, msg_id = struct.unpack(">IB", msg)
                 if msg_id != 1:
                     raise Exception("Expected unchoke")
 
                 full_length = self.torrent_read.get_data()["length"]
-                piece_index = 0
-                piece_length = self.torrent_read.get_data()["piece length"]
+                standard_piece_length = self.torrent_read.get_data()["piece length"]
                 block_size = 16384
 
+                bitfield_str = self.decode_bitfield(bitfield)
+                available_pieces = [i for i, bit in enumerate(bitfield_str) if bit == '1']
+
                 full_file = b""
-                for begin in range(0, piece_length, block_size):
-                    block_len = min(block_size, piece_length - begin)
-                    msg = struct.pack(">IbIII", 13, 6, piece_index, begin, block_len)
-                    soc.sendall(msg)
-                    data = self.recv_exact(soc, 13 + block_len)
+                for piece_index in available_pieces:
+                    print(f"Downloading piece index: {piece_index}")
 
-                    block = data[13:]
+                    total_pieces = (full_length + standard_piece_length - 1) // standard_piece_length
+                    if piece_index == total_pieces - 1:
+                        piece_size = self.get_last_piece_length(full_length, standard_piece_length)
+                    else:
+                        piece_size = standard_piece_length
 
-                    full_file += block
+                    piece_data = b""
+                    for begin in range(0, piece_size, block_size):
+                        block_len = min(block_size, piece_size - begin)
 
-                msg = struct.pack(">IbI", 5, 4, piece_index)
-                soc.sendall(msg)
+                        msg = struct.pack(">IbIII", 13, 6, piece_index, begin, block_len)
+                        soc.sendall(msg)
 
-                sh1 = hashlib.sha1()
-                sh1.update(full_file)
-                full_hash = sh1.hexdigest()
-                piece_hash_list = self.hash.get_data()["pieces hash"]
-                if full_hash == piece_hash_list[piece_index]:
-                    print("--Piece Hash validate successfully--")
-                else:
-                    print("--Piece Hash validate unsuccessfully--")
+                        response = self.recv_exact(soc, 13 + block_len)
+                        block_data = response[13:]
 
-                with open("./full file.txt", "wb") as f:
-                    f.write(full_file)
-                    print("--File create successfully--")
+                        piece_data += block_data
 
-                with open("./full file.txt", "rb") as f:
-                    file = f.read()
-                    print("\n======================\tFile\t======================\n")
-                    print(file)
+                    full_file += piece_data
 
+                print("full file :", full_file)
 
             else:
-                print("info hash not equal")
+                print("Info hash mismatch")
+
+    def get_last_piece_length(self, total_length, piece_length):
+        remainder = total_length % piece_length
+        return remainder if remainder != 0 else piece_length
 
     def decode_bitfield(self, data):
         bitfield_bytes = data[5:]
