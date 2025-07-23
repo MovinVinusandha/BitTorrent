@@ -70,7 +70,9 @@ class Download:
 
                     full_file += piece_data
 
-                print("full file :", full_file)
+                with open("./downloaded_file.txt", "wb") as f:
+                    f.write(full_file)
+                    print("---File downloaded successfully---")
 
             else:
                 print("Info hash mismatch")
