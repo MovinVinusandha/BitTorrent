@@ -68,7 +68,16 @@ class Download:
 
                         piece_data += block_data
 
-                    full_file += piece_data
+                    piece_hash = hashlib.sha1(piece_data).hexdigest()
+                    expected_hash = self.hash.get_data()["pieces hash"][piece_index]
+
+                    if piece_hash == expected_hash:
+                        full_file += piece_data
+
+                        have_msg = struct.pack(">IbI", 5, 4, piece_index)
+                        soc.sendall(have_msg)
+                    else:
+                        print(f"Piece {piece_index} hash validation failed!")
 
                 with open("./downloaded_file.txt", "wb") as f:
                     f.write(full_file)
