@@ -25,9 +25,11 @@ class Peers:
         self.compact = 1
 
     def peer_id_gen(self):
+        """Generate a 20-byte Azureus-style peer ID (e.g. -PC0001-<random>)"""
         return f"-MV0001-{''.join(random.choices(string.ascii_letters + string.digits, k=12))}".encode("utf-8")
 
     def url_params(self):
+        """Return dictionary of URL parameters used to make a tracker request"""
         url = self.url
 
         params = {"info_hash": self.info_hash,
@@ -42,10 +44,12 @@ class Peers:
         return {"url": url, "params": params}
 
     def get_peers_data(self):
+        """Return raw byte string containing peers data from tracker response"""
         response = requests.get(self.url_params()["url"], self.url_params()["params"])
         return response.content
 
     def gen_peers_ip(self):
+        """Return a list of peer IPs extracted from decoded tracker peer data"""
         tracker_response_decode = bencodepy.decode(self.get_peers_data())
         string_dict = self.torrent_read.bytes_to_str_dict(tracker_response_decode)
         peers_value_list = list(string_dict["peers"])
@@ -66,6 +70,7 @@ class Peers:
         return [f"{ip_port[:-6:]}:{ip_port.split(".")[-1]}" for ip_port in complete_ip_list]
 
     def gen_peer_data(self):
+        """Return a dictionary containing decoded peer information from the tracker response"""
         tracker_response_decode = bencodepy.decode(self.get_peers_data())
         string_dict = self.torrent_read.bytes_to_str_dict(tracker_response_decode)
 

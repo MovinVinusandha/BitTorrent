@@ -18,6 +18,7 @@ class Download:
         self.ip, self.port = self.peers.gen_peers_ip()[0].split(":")
 
     def handshake_connection(self):
+        """Establish TCP connection with peer, perform handshake, download entire file, and save it"""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
             soc.connect((self.ip, int(self.port)))
             soc.send(self.handshake.handshake_msg())
@@ -87,14 +88,17 @@ class Download:
                 print("Info hash mismatch")
 
     def get_last_piece_length(self, total_length, piece_length):
+        """Return integer representing the length of the last piece"""
         remainder = total_length % piece_length
         return remainder if remainder != 0 else piece_length
 
     def decode_bitfield(self, data):
+        """Return decoded bitfield as a string"""
         bitfield_bytes = data[5:]
         return ''.join(f'{byte:08b}' for byte in bitfield_bytes)
 
     def recv_exact(self, soc, total_len):
+        """Return bytes object of length total_len read from socket, blocking until complete"""
         data = b''
         while len(data) < total_len:
             chunk = soc.recv(total_len - len(data))

@@ -22,6 +22,7 @@ class HandshakeMsg:
         self.peer_id = self.peers.peer_id_gen()
 
     def handshake_msg(self):
+        """Return byte object of handshake message"""
         handshake_params = struct.pack(
             f'b{self.protocol_str_len}s8s20s20s',
             self.protocol_str_len,

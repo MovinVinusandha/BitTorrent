@@ -12,16 +12,19 @@ class TorrentRead:
 
     # --> b"d8:announce55:http://bitt..."
     def read_torrent(self):
+        """Return byte string containing the contents of the torrent file"""
         with open(self.torrent_file, "rb") as f:
             self.torrent_byte_str = f.read()
 
     # --> {b'announce': b'http://bitt...
     def decode_bencode(self):
+        """Return decoded data from torrent file byte string"""
         x = bencodepy.decode(self.torrent_byte_str)
         return x
 
     # decode dictionary keys for data access using keys --> {'announce': b'http://bitte', 'created by': b'mktorrent...
     def bytes_to_str_dict(self, torrent_decode):
+        """Convert dictionary keys from bytes to strings by decoding them"""
         if isinstance(torrent_decode, dict):
             return {key.decode(): value for key, value in torrent_decode.items()}
         else:

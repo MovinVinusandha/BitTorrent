@@ -13,6 +13,7 @@ class Hash:
         self.piece_hash_list = self.calculate_pieces_hash(self.decode_dict)
 
     def calculate_info_hash(self, decoded_dictionary):
+        """Calculate the info hash (SHA-1 of the bencoded 'info' dictionary)"""
         info_dic = self.torrent_read.bytes_to_str_dict(decoded_dictionary["info"])
         bencode_info_dic = bencodepy.encode(info_dic)
 
@@ -21,6 +22,7 @@ class Hash:
         return m
 
     def calculate_pieces_hash(self, decoded_dictionary):
+        """Split the 'pieces' field from the 'info' dictionary into 20-byte SHA-1 hashes (one per piece)"""
         pieces_bytes_str = self.torrent_read.bytes_to_str_dict(decoded_dictionary["info"])["pieces"]
         pieces_bytes_str_length = len(pieces_bytes_str)
 
