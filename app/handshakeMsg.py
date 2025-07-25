@@ -33,3 +33,19 @@ class HandshakeMsg:
         )
 
         return handshake_params
+
+    def handshake_msg_unpack(self, socket):
+        handshake_reply = socket.recv(68)
+
+        protocol_str_len, protocol_str, reserved_bytes, info_hash, peer_id = struct.unpack(
+            f'b{self.protocol_str_len}s8s20s20s',
+            handshake_reply
+        )
+
+        return {
+            "protocol_str_len": protocol_str_len,
+            "protocol_str": protocol_str,
+            "reserved_bytes": reserved_bytes,
+            "info_hash": info_hash,
+            "peer_id": peer_id,
+        }

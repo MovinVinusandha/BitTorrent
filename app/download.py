@@ -23,14 +23,9 @@ class Download:
             soc.connect((self.ip, int(self.port)))
             soc.send(self.handshake.handshake_msg())
 
-            handshake_reply = soc.recv(68)
+            handshake_msg_response = self.handshake.handshake_msg_unpack(soc)
 
-            protocol_str_len, protocol_str, reserved_bytes, info_hash, peer_id = struct.unpack(
-                f'b{self.handshake.protocol_str_len}s8s20s20s',
-                handshake_reply
-            )
-
-            if info_hash == self.handshake.info_hash:
+            if handshake_msg_response["info_hash"] == self.handshake.info_hash:
                 msg = struct.pack("Ib", 1, 2)
                 soc.send(msg)
                 bitfield = soc.recv(68)
