@@ -174,4 +174,4 @@ cython_debug/
 .pypirc
 
 sample.torrent
-full file.txt
+downloaded_file.txt

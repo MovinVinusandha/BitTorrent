@@ -7,6 +7,7 @@ from app.hashGen import Hash
 from app.torrentFile import TorrentRead
 from app.handshakeMsg import HandshakeMsg
 from app.peers import Peers
+from app.messages import Messages
 
 class Download:
     def __init__(self):
@@ -20,15 +21,15 @@ class Download:
     def handshake_connection(self):
         """Establish TCP connection with peer, perform handshake, download entire file, and save it"""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as soc:
+            message = Messages(soc)
+
             soc.connect((self.ip, int(self.port)))
             soc.send(self.handshake.handshake_msg())
 
             handshake_msg_response = self.handshake.handshake_msg_unpack(soc)
 
             if handshake_msg_response["info_hash"] == self.handshake.info_hash:
-                msg = struct.pack("Ib", 1, 2)
-                soc.send(msg)
-                bitfield = soc.recv(68)
+                bitfield = message.interested()
 
                 msg = self.recv_exact(soc, 5)
                 length, msg_id = struct.unpack(">IB", msg)
@@ -56,8 +57,7 @@ class Download:
                     for begin in range(0, piece_size, block_size):
                         block_len = min(block_size, piece_size - begin)
 
-                        msg = struct.pack(">IbIII", 13, 6, piece_index, begin, block_len)
-                        soc.sendall(msg)
+                        message.request(piece_index, begin, block_len)
 
                         response = self.recv_exact(soc, 13 + block_len)
                         block_data = response[13:]
