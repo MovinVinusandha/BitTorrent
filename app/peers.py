@@ -5,7 +5,6 @@ import random
 import bencodepy
 import requests
 
-# from app.hashGen import Hash
 from app.torrentData import Torrent
 from app.torrentRead import TorrentRead
 
@@ -14,17 +13,7 @@ class Peers:
         torrent_file = sys.argv[2]
         self.torrent_data = Torrent(torrent_file)
         self.torrent_read = TorrentRead(torrent_file)
-        # self.hash = Hash(self.torrent_data)
-
-        self.url = self.torrent_data.return_full_data()["tracker url"]
-
-        self.info_hash = hashlib.sha1(bencodepy.encode(self.torrent_data.info)).digest()
-        self.peer_id = self.peer_id_gen()
-        self.port = 6881
-        self.uploaded = 0
-        self.downloaded = 0
-        self.left = self.torrent_data.return_full_data()["length"]
-        self.compact = 1
+        self.my_id = self.peer_id_gen()
 
     def peer_id_gen(self):
         """Generate a 20-byte Azureus-style peer ID (e.g. -PC0001-<random>)"""
@@ -32,15 +21,23 @@ class Peers:
 
     def url_params(self):
         """Return dictionary of URL parameters used to make a tracker request"""
-        url = self.url
+        url = self.torrent_data.return_full_data()["tracker url"]
 
-        params = {"info_hash": self.info_hash,
-                  "peer_id": self.peer_id,
-                  "port": self.port,
-                  "uploaded": self.uploaded,
-                  "downloaded": self.downloaded,
-                  "left": self.left,
-                  "compact": self.compact,
+        info_hash = hashlib.sha1(bencodepy.encode(self.torrent_data.info)).digest()
+        peer_id = self.peer_id_gen()
+        port = 6881
+        uploaded = 0
+        downloaded = 0
+        left = self.torrent_data.return_full_data()["length"]
+        compact = 1
+
+        params = {"info_hash": info_hash,
+                  "peer_id": peer_id,
+                  "port": port,
+                  "uploaded": uploaded,
+                  "downloaded": downloaded,
+                  "left": left,
+                  "compact": compact,
                   }
 
         return {"url": url, "params": params}

@@ -3,33 +3,33 @@ import struct
 import sys
 import bencodepy
 
-from app.hashGen import Hash
 from app.peers import Peers
 from app.torrentData import Torrent
+
+PROTOCOL_STR = b"BitTorrent protocol"
 
 class HandshakeMsg:
     def __init__(self):
         torrent_file = sys.argv[2]
-        self.torrent_data = Torrent(torrent_file)
-        self.hash = Hash(self.torrent_data)
+        self.torrent_read = Torrent(torrent_file)
         self.peers = Peers()
 
-        self.info_hash = hashlib.sha1(bencodepy.encode(self.torrent_data.info)).digest()
+        self.info_hash = hashlib.sha1(bencodepy.encode(self.torrent_read.info)).digest()
 
-        self.protocol_str = b"BitTorrent protocol"
-        self.protocol_str_len = len(self.protocol_str)
-        self.reserved_bytes = bytes(8)
-        self.peer_id = self.peers.peer_id_gen()
 
     def handshake_msg(self):
         """Return byte object of handshake message"""
+        protocol_str_len = len(PROTOCOL_STR)
+        reserved_bytes = bytes(8)
+        peer_id = self.peers.my_id
+
         handshake_params = struct.pack(
-            f'b{self.protocol_str_len}s8s20s20s',
-            self.protocol_str_len,
-            self.protocol_str,
-            self.reserved_bytes,
+            f'b{protocol_str_len}s8s20s20s',
+            protocol_str_len,
+            PROTOCOL_STR,
+            reserved_bytes,
             self.info_hash,
-            self.peer_id
+            peer_id
         )
 
         return handshake_params
@@ -38,7 +38,7 @@ class HandshakeMsg:
         handshake_reply = socket.recv(68)
 
         protocol_str_len, protocol_str, reserved_bytes, info_hash, peer_id = struct.unpack(
-            f'b{self.protocol_str_len}s8s20s20s',
+            f'b{len(PROTOCOL_STR)}s8s20s20s',
             handshake_reply
         )
 
