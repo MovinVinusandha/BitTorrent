@@ -4,16 +4,18 @@ import struct
 import sys
 
 from app.hashGen import Hash
-from app.torrentFile import TorrentRead
+from app.torrentRead import TorrentRead
 from app.handshakeMsg import HandshakeMsg
 from app.peers import Peers
 from app.messages import Messages
+from app.torrentData import Torrent
 
 class Download:
     def __init__(self):
         self.torrent_file = sys.argv[2]
         self.torrent_read = TorrentRead(self.torrent_file)
-        self.hash = Hash()
+        self.torrent_data = Torrent(self.torrent_file)
+        self.hash = Hash(self.torrent_read)
         self.peers = Peers()
         self.handshake = HandshakeMsg()
         self.ip, self.port = self.peers.gen_peers_ip()[0].split(":")
@@ -64,8 +66,8 @@ class Download:
         """Return byte string containing downloaded piece data"""
         message = Messages(soc)
 
-        full_length = self.torrent_read.get_data()["length"]
-        standard_piece_length = self.torrent_read.get_data()["piece length"]
+        full_length = self.torrent_data.return_full_data()["length"]
+        standard_piece_length = self.torrent_data.return_full_data()["piece length"]
         block_size = 16384
 
         full_file = b""
@@ -90,7 +92,7 @@ class Download:
                 piece_data += block_data
 
             piece_hash = hashlib.sha1(piece_data).hexdigest()
-            expected_hash = self.hash.get_data()["pieces hash"][piece_index]
+            expected_hash = self.torrent_data.return_full_data()["pieces hash"][piece_index]
 
             if piece_hash == expected_hash:
                 full_file += piece_data

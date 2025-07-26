@@ -5,23 +5,25 @@ import random
 import bencodepy
 import requests
 
-from app.hashGen import Hash
-from app.torrentFile import TorrentRead
+# from app.hashGen import Hash
+from app.torrentData import Torrent
+from app.torrentRead import TorrentRead
 
 class Peers:
     def __init__(self):
         torrent_file = sys.argv[2]
+        self.torrent_data = Torrent(torrent_file)
         self.torrent_read = TorrentRead(torrent_file)
-        self.hash = Hash()
+        # self.hash = Hash(self.torrent_data)
 
-        self.url = self.torrent_read.get_data()["tracker url"]
+        self.url = self.torrent_data.return_full_data()["tracker url"]
 
-        self.info_hash = hashlib.sha1(bencodepy.encode(self.torrent_read.info)).digest()
+        self.info_hash = hashlib.sha1(bencodepy.encode(self.torrent_data.info)).digest()
         self.peer_id = self.peer_id_gen()
         self.port = 6881
         self.uploaded = 0
         self.downloaded = 0
-        self.left = self.torrent_read.get_data()["length"]
+        self.left = self.torrent_data.return_full_data()["length"]
         self.compact = 1
 
     def peer_id_gen(self):
