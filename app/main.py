@@ -23,7 +23,7 @@ def main():
         print(hash_data)
 
     elif command == "download":
-        download.handshake_connection()
+        download.determine_download_sequence()
 
 
 if __name__ == "__main__":
