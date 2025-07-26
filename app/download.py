@@ -3,19 +3,16 @@ import socket
 import struct
 import sys
 
-from app.hashGen import Hash
-from app.torrentRead import TorrentRead
 from app.handshakeMsg import HandshakeMsg
 from app.peers import Peers
 from app.messages import Messages
-from app.torrentData import Torrent
+from app.torrentRead import TorrentRead
 
 class Download:
     def __init__(self):
         self.torrent_file = sys.argv[2]
         self.torrent_read = TorrentRead(self.torrent_file)
-        self.torrent_data = Torrent(self.torrent_file)
-        self.hash = Hash(self.torrent_read)
+        self.torrent_data = TorrentRead(self.torrent_file)
         self.peers = Peers()
         self.handshake = HandshakeMsg()
         self.ip, self.port = self.peers.gen_peers_ip()[0].split(":")

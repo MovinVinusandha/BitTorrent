@@ -1,12 +1,12 @@
 import sys
-from app.torrentData import Torrent
+from app.torrentRead import TorrentRead
 from app.download import Download
 
 def main():
     command = sys.argv[1]
     torrent_file = sys.argv[2]
 
-    torrent_data = Torrent(torrent_file)
+    torrent_data = TorrentRead(torrent_file)
     download = Download()
 
     if command == "read":
