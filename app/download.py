@@ -1,43 +1,54 @@
 import hashlib
-import socket
 import struct
 import sys
 
 from app.handshakeMsg import HandshakeMsg
 from app.peers import Peers
 from app.messages import Messages
+from app.socket import Socket
 from app.torrentRead import TorrentRead
 
 class Download:
     def __init__(self):
         self.torrent_file = sys.argv[2]
-        self.torrent_read = TorrentRead(self.torrent_file)
         self.torrent_data = TorrentRead(self.torrent_file)
         self.peers = Peers()
         self.handshake = HandshakeMsg()
-        self.ip, self.port = self.peers.gen_peers_ip()[0].split(":")
-        self.sock = None
+        self.ip_port_list = Peers().gen_peers_ip()
+        self.already_downloaded_pieces = []
 
-    def __enter__(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.ip, int(self.port)))
-        return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.sock:
-            self.sock.close()
+    def pieces_with_socket(self):
+        socket_and_pieces = {}
 
-    def determine_download_sequence(self):
-        with Download() as down:
-            handshake_msg_response = self.handshake_connection(down.sock)
+        for i in range(len(self.ip_port_list)):
+            ip, port = self.ip_port_list[i].split(":")
 
+            with Socket(ip, int(port)) as peer_con:
+                handshake_msg_response = self.handshake_connection(peer_con.sock)
+                if handshake_msg_response["info_hash"] == self.handshake.info_hash:
+                    avalable_pieces = self.bitfield(peer_con.sock)
+                    socket_and_pieces[self.ip_port_list[i]] = avalable_pieces
+
+                else:
+                    print("Handshake validate failed")
+        return socket_and_pieces
+
+    def download(self, ip, port, pieces):
+        with Socket(ip, port) as peer_con:
+            print(f"\nConnect to {ip}")
+
+            handshake_msg_response = self.handshake_connection(peer_con.sock)
             if handshake_msg_response["info_hash"] == self.handshake.info_hash:
-                available_pieces = self.bitfield(down.sock)
-                self.wait_for_unchoke(down.sock)
-                self.download_pieces(down.sock, available_pieces)
+                self.bitfield(peer_con.sock)
+                self.wait_for_unchoke(peer_con.sock)
 
+                file = self.download_pieces(peer_con.sock, pieces)
+
+                return file
             else:
-                print("Invalid Hash")
+                print("handshake validate fail")
+                return None
 
     def handshake_connection(self, soc):
         """Return dictionary containing parsed handshake message response"""
@@ -69,35 +80,38 @@ class Download:
 
         full_file = b""
         for piece_index in available_pieces:
-            print(f"Downloading piece index: {piece_index}")
+            if not piece_index in self.already_downloaded_pieces:
+                print(f"Downloading piece index: {piece_index}")
 
-            total_pieces = (full_length + standard_piece_length - 1) // standard_piece_length
-            if piece_index == total_pieces - 1:
-                piece_size = self.get_last_piece_length(full_length, standard_piece_length)
-            else:
-                piece_size = standard_piece_length
+                total_pieces = (full_length + standard_piece_length - 1) // standard_piece_length
+                if piece_index == total_pieces - 1:
+                    piece_size = self.get_last_piece_length(full_length, standard_piece_length)
+                else:
+                    piece_size = standard_piece_length
 
-            piece_data = b""
-            for begin in range(0, piece_size, block_size):
-                block_len = min(block_size, piece_size - begin)
+                piece_data = b""
+                for begin in range(0, piece_size, block_size):
+                    block_len = min(block_size, piece_size - begin)
 
-                message.request(piece_index, begin, block_len)
+                    message.request(piece_index, begin, block_len)
 
-                response = self.recv_exact(soc, 13 + block_len)
-                block_data = response[13:]
+                    response = self.recv_exact(soc, 13 + block_len)
+                    block_data = response[13:]
 
-                piece_data += block_data
+                    piece_data += block_data
 
-            piece_hash = hashlib.sha1(piece_data).hexdigest()
-            expected_hash = self.torrent_data.return_full_data()["pieces hash"][piece_index]
+                piece_hash = hashlib.sha1(piece_data).hexdigest()
+                expected_hash = self.torrent_data.return_full_data()["pieces hash"][piece_index]
 
-            if piece_hash == expected_hash:
-                full_file += piece_data
+                if piece_hash == expected_hash:
+                    full_file += piece_data
 
-                have_msg = struct.pack(">IbI", 5, 4, piece_index)
-                soc.sendall(have_msg)
-            else:
-                print(f"Piece {piece_index} hash validation failed!")
+                    have_msg = struct.pack(">IbI", 5, 4, piece_index)
+                    soc.sendall(have_msg)
+
+                    self.already_downloaded_pieces.append(piece_index)
+                else:
+                    print(f"Piece {piece_index} hash validation failed!")
 
         return full_file
 
