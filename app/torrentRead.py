@@ -1,5 +1,6 @@
 import bencodepy
 import hashlib
+import datetime
 
 class TorrentRead:
     def __init__(self, torrent_file):
@@ -45,24 +46,34 @@ class TorrentRead:
         return piece_hashes_list
 
     def return_full_data(self):
+        data_dictionary = {}
         decode_dict = self.bytes_to_str_dict(self.decode_bencode())
 
-        traker_url = decode_dict["announce"]
-        created_by = decode_dict["created by"]
-        info = self.bytes_to_str_dict(decode_dict["info"])
+        data_dictionary["tracker url"] = decode_dict["announce"].decode()
 
-        info_hash = self.calculate_info_hash(decode_dict).hexdigest()
-        piece_hash_list = self.calculate_pieces_hash(decode_dict)
+        if "announce-list" in decode_dict:
+            data_dictionary["announce list"] = decode_dict["announce-list"]
+        if "comment" in decode_dict:
+            data_dictionary["comment"] = decode_dict["comment"]
+        if "created by" in decode_dict:
+            data_dictionary["created by"] = decode_dict["created by"].decode()
+        if "creation date" in decode_dict:
+            dt_object_local = datetime.datetime.fromtimestamp(decode_dict["creation date"])
+            data_dictionary["creation date"] = dt_object_local
 
-        data_dictionary = {
-            "tracker url": traker_url.decode(),
-            "created by": created_by.decode(),
-            "length": info["length"],
-            "piece length": info["piece length"],
-            "name": info["name"].decode(),
-            "info hash": info_hash,
-            "pieces hash": piece_hash_list,
-        }
+
+        if "info" in decode_dict:
+            info = self.bytes_to_str_dict(decode_dict["info"])
+
+            data_dictionary["name"] = info["name"]
+            data_dictionary["piece length"] = info["piece length"]
+            data_dictionary["info hash"] = self.calculate_info_hash(decode_dict).hexdigest()
+            data_dictionary["pieces hash"] = self.calculate_pieces_hash(decode_dict)
+            if "private" in info:
+                data_dictionary["private"] = info["private"]
+            if "length" in info:
+                data_dictionary["length"] = info["length"]
+            else:
+                data_dictionary["files"] = info["files"]
 
         return data_dictionary
-
