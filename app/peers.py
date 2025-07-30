@@ -6,6 +6,8 @@ import bencodepy
 import requests
 
 from app.torrentRead import TorrentRead
+from app.utilityClass import UtilityClass
+
 
 class Peers:
     def __init__(self):
@@ -21,7 +23,8 @@ class Peers:
         """Return dictionary of URL parameters used to make a tracker request"""
         url = self.torrent_data.return_full_data()["tracker url"]
 
-        info = self.torrent_data.bytes_to_str_dict(self.torrent_data.bytes_to_str_dict(self.torrent_data.decode_bencode())["info"])
+
+        info = UtilityClass.decode_bencode(self.torrent_data.read_torrent())[b"info"]
         info_hash = hashlib.sha1(bencodepy.encode(info)).digest()
 
         peer_id = self.peer_id_gen()
@@ -50,8 +53,8 @@ class Peers:
     def gen_peers_ip(self):
         """Return a list of peer IPs extracted from decoded tracker peer data"""
         tracker_response_decode = bencodepy.decode(self.get_peers_data())
-        string_dict = self.torrent_data.bytes_to_str_dict(tracker_response_decode)
-        peers_value_list = list(string_dict["peers"])
+
+        peers_value_list = list(tracker_response_decode[b"peers"])
 
         all_ip_port_bytes_list = []
         for i in range(0, len(peers_value_list), 6):
@@ -71,12 +74,11 @@ class Peers:
     def gen_peer_data(self):
         """Return a dictionary containing decoded peer information from the tracker response"""
         tracker_response_decode = bencodepy.decode(self.get_peers_data())
-        string_dict = self.torrent_data.bytes_to_str_dict(tracker_response_decode)
 
-        complete = string_dict["complete"]
-        incomplete = string_dict["incomplete"]
-        interval = string_dict["interval"]
-        min_interval = string_dict["min interval"]
+        complete = tracker_response_decode[b"complete"]
+        incomplete = tracker_response_decode[b"incomplete"]
+        interval = tracker_response_decode[b"interval"]
+        min_interval = tracker_response_decode[b"min interval"]
 
         return {"complete": complete,
                 "incomplete": incomplete,

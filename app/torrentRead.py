@@ -1,6 +1,7 @@
 import bencodepy
 import hashlib
-import datetime
+
+from app.utilityClass import UtilityClass
 
 class TorrentRead:
     def __init__(self, torrent_file):
@@ -11,21 +12,9 @@ class TorrentRead:
         with open(self.torrent_file, "rb") as f:
             return f.read()
 
-    def decode_bencode(self):
-        """Return decoded data from torrent file byte string"""
-        x = bencodepy.decode(self.read_torrent())
-        return x
-
-    def bytes_to_str_dict(self, torrent_decode):
-        """Convert dictionary keys from bytes to strings by decoding them"""
-        if isinstance(torrent_decode, dict):
-            return {key.decode(): value for key, value in torrent_decode.items()}
-        else:
-            return torrent_decode
-
     def calculate_info_hash(self, decoded_dictionary):
         """Calculate the info hash (SHA-1 of the bencoded 'info' dictionary)"""
-        info_dic = self.bytes_to_str_dict(decoded_dictionary["info"])
+        info_dic = decoded_dictionary[b"info"]
         bencode_info_dic = bencodepy.encode(info_dic)
 
         m = hashlib.sha1()
@@ -34,7 +23,7 @@ class TorrentRead:
 
     def calculate_pieces_hash(self, decoded_dictionary):
         """Split the 'pieces' field from the 'info' dictionary into 20-byte SHA-1 hashes (one per piece)"""
-        pieces_bytes_str = self.bytes_to_str_dict(decoded_dictionary["info"])["pieces"]
+        pieces_bytes_str = decoded_dictionary[b"info"][b"pieces"]
         pieces_bytes_str_length = len(pieces_bytes_str)
 
         item_index = 0
@@ -47,33 +36,20 @@ class TorrentRead:
 
     def return_full_data(self):
         data_dictionary = {}
-        decode_dict = self.bytes_to_str_dict(self.decode_bencode())
+        decode_dict = UtilityClass.decode_bencode(self.read_torrent())
 
-        data_dictionary["tracker url"] = decode_dict["announce"].decode()
+        data_dictionary["tracker url"] = decode_dict[b"announce"].decode()
 
-        if "announce-list" in decode_dict:
-            data_dictionary["announce list"] = decode_dict["announce-list"]
-        if "comment" in decode_dict:
-            data_dictionary["comment"] = decode_dict["comment"]
-        if "created by" in decode_dict:
-            data_dictionary["created by"] = decode_dict["created by"].decode()
-        if "creation date" in decode_dict:
-            dt_object_local = datetime.datetime.fromtimestamp(decode_dict["creation date"])
-            data_dictionary["creation date"] = dt_object_local
+        data_dictionary["created by"] = decode_dict[b"created by"].decode()
 
+        info = decode_dict[b"info"]
 
-        if "info" in decode_dict:
-            info = self.bytes_to_str_dict(decode_dict["info"])
+        data_dictionary["info"] = info
 
-            data_dictionary["name"] = info["name"]
-            data_dictionary["piece length"] = info["piece length"]
-            data_dictionary["info hash"] = self.calculate_info_hash(decode_dict).hexdigest()
-            data_dictionary["pieces hash"] = self.calculate_pieces_hash(decode_dict)
-            if "private" in info:
-                data_dictionary["private"] = info["private"]
-            if "length" in info:
-                data_dictionary["length"] = info["length"]
-            else:
-                data_dictionary["files"] = info["files"]
+        data_dictionary["name"] = info[b"name"]
+        data_dictionary["piece length"] = info[b"piece length"]
+        data_dictionary["info hash"] = self.calculate_info_hash(decode_dict).hexdigest()
+        data_dictionary["pieces hash"] = self.calculate_pieces_hash(decode_dict)
+        data_dictionary["length"] = info[b"length"]
 
         return data_dictionary
