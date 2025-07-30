@@ -4,6 +4,7 @@ from app.download import Download
 from app.fullFileDownload import FullFileDownload
 from app.torrentRead import TorrentRead
 from app.peers import Peers
+from app.peersPieces import PeersPieces
 
 def main():
     command = sys.argv[1]
@@ -27,8 +28,11 @@ def main():
         torrent_file_data = torrent_data.return_full_data()
         ip_port_list = Peers(torrent_file_data).get_data()["ip"]
 
-        download = Download(ip_port_list)
-        FullFileDownload(download)
+        peer_pieces = PeersPieces(ip_port_list)
+        download = Download(peer_pieces)
+
+        socket_with_pieces = peer_pieces.get_data()
+        FullFileDownload(download, socket_with_pieces)
 
 if __name__ == "__main__":
     main()

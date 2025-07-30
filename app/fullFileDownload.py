@@ -1,13 +1,13 @@
 class FullFileDownload:
-    def __init__(self, download):
+    def __init__(self, download, socket_with_pieces):
         self.download = download
+        self.socket_with_pieces = socket_with_pieces
         self.full_download()
 
     def full_download(self):
-        socket_with_pieces = self.download.pieces_with_socket()
 
         full_file = b""
-        for ip_port, pieces_index in socket_with_pieces.items():
+        for ip_port, pieces_index in self.socket_with_pieces.items():
             ip, port = ip_port.split(":")
             file = self.download.download(ip, int(port), pieces_index)
 

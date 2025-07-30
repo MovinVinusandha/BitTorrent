@@ -9,30 +9,12 @@ from app.socket import Socket
 from app.torrentRead import TorrentRead
 
 class Download:
-    def __init__(self, ip_port_list):
+    def __init__(self, peers_pieces):
         self.torrent_file = sys.argv[2]
         self.torrent_data = TorrentRead(self.torrent_file)
         self.handshake = HandshakeMsg()
-        # self.ip_port_list = Peers(self.torrent_data.return_full_data()).get_data()["ip"]
-        self.ip_port_list = ip_port_list
+        self.peerPieces = peers_pieces
         self.already_downloaded_pieces = []
-
-
-    def pieces_with_socket(self):
-        socket_and_pieces = {}
-
-        for i in range(len(self.ip_port_list)):
-            ip, port = self.ip_port_list[i].split(":")
-
-            with Socket(ip, int(port)) as peer_con:
-                handshake_msg_response = self.handshake_connection(peer_con.sock)
-                if handshake_msg_response["info_hash"] == self.handshake.info_hash:
-                    avalable_pieces = self.bitfield(peer_con.sock)
-                    socket_and_pieces[self.ip_port_list[i]] = avalable_pieces
-
-                else:
-                    print("Handshake validate failed")
-        return socket_and_pieces
 
     def download(self, ip, port, pieces):
         with Socket(ip, port) as peer_con:
@@ -40,7 +22,7 @@ class Download:
 
             handshake_msg_response = self.handshake_connection(peer_con.sock)
             if handshake_msg_response["info_hash"] == self.handshake.info_hash:
-                self.bitfield(peer_con.sock)
+                self.peerPieces.bitfield(peer_con.sock)
                 self.wait_for_unchoke(peer_con.sock)
 
                 file = self.download_pieces(peer_con.sock, pieces)
@@ -54,14 +36,6 @@ class Download:
         """Return dictionary containing parsed handshake message response"""
         soc.send(self.handshake.handshake_msg())
         return self.handshake.handshake_msg_unpack(soc)
-
-    def bitfield(self, soc):
-        """Return list of available piece indexes extracted from bitfield"""
-        message = Messages(soc)
-        bitfield = message.interested()
-
-        bitfield_str = self.decode_bitfield(bitfield)
-        return [i for i, bit in enumerate(bitfield_str) if bit == '1']
 
     def wait_for_unchoke(self, soc):
         """Verify peer has unchoked us; raise exception if still choked"""
@@ -119,11 +93,6 @@ class Download:
         """Return integer representing the length of the last piece"""
         remainder = total_length % piece_length
         return remainder if remainder != 0 else piece_length
-
-    def decode_bitfield(self, data):
-        """Return decoded bitfield as a string"""
-        bitfield_bytes = data[5:]
-        return ''.join(f'{byte:08b}' for byte in bitfield_bytes)
 
     def recv_exact(self, soc, total_len):
         """Return bytes object of length total_len read from socket, blocking until complete"""
