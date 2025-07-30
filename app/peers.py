@@ -1,37 +1,32 @@
 import hashlib
 import string
-import sys
 import random
 import bencodepy
 import requests
 
-from app.torrentRead import TorrentRead
-from app.utilityClass import UtilityClass
-
 
 class Peers:
-    def __init__(self):
-        torrent_file = sys.argv[2]
-        self.torrent_data = TorrentRead(torrent_file)
-        self.my_id = self.peer_id_gen()
+    def __init__(self, torrent_file_data):
+        self.torrent_data = torrent_file_data
 
-    def peer_id_gen(self):
+    @staticmethod
+    def peer_id_gen():
         """Generate a 20-byte Azureus-style peer ID (e.g. -PC0001-<random>)"""
         return f"-MV0001-{''.join(random.choices(string.ascii_letters + string.digits, k=12))}".encode("utf-8")
 
     def url_params(self):
         """Return dictionary of URL parameters used to make a tracker request"""
-        url = self.torrent_data.return_full_data()["tracker url"]
+        url = self.torrent_data["tracker url"]
 
-
-        info = UtilityClass.decode_bencode(self.torrent_data.read_torrent())[b"info"]
-        info_hash = hashlib.sha1(bencodepy.encode(info)).digest()
+        # info = UtilityClass.decode_bencode(self.torrent_data.read_torrent())[b"info"]
+        # info_hash = hashlib.sha1(bencodepy.encode(info)).digest()
+        info_hash = hashlib.sha1(bencodepy.encode(self.torrent_data["info"])).digest()
 
         peer_id = self.peer_id_gen()
         port = 6881
         uploaded = 0
         downloaded = 0
-        left = self.torrent_data.return_full_data()["length"]
+        left = self.torrent_data["length"]
         compact = 1
 
         params = {"info_hash": info_hash,

@@ -13,7 +13,6 @@ class HandshakeMsg:
     def __init__(self):
         torrent_file = sys.argv[2]
         self.torrent_data = TorrentRead(torrent_file)
-        self.peers = Peers()
 
         info = UtilityClass.decode_bencode(self.torrent_data.read_torrent())[b"info"]
         self.info_hash = hashlib.sha1(bencodepy.encode(info)).digest()
@@ -23,7 +22,7 @@ class HandshakeMsg:
         """Return byte object of handshake message"""
         protocol_str_len = len(PROTOCOL_STR)
         reserved_bytes = bytes(8)
-        peer_id = self.peers.my_id
+        peer_id = Peers.peer_id_gen()
 
         handshake_params = struct.pack(
             f'b{protocol_str_len}s8s20s20s',

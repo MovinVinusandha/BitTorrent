@@ -1,8 +1,7 @@
-from app.download import Download
-
 class FullFileDownload:
-    def __init__(self):
-        self.download = Download()
+    def __init__(self, download):
+        self.download = download
+        self.full_download()
 
     def full_download(self):
         socket_with_pieces = self.download.pieces_with_socket()

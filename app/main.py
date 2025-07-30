@@ -1,14 +1,15 @@
 import sys
 
+from app.download import Download
 from app.fullFileDownload import FullFileDownload
 from app.torrentRead import TorrentRead
+from app.peers import Peers
 
 def main():
     command = sys.argv[1]
     torrent_file = sys.argv[2]
 
     torrent_data = TorrentRead(torrent_file)
-    full_download = FullFileDownload()
 
     if command == "read":
         torrent_data = torrent_data.return_full_data()
@@ -22,7 +23,12 @@ def main():
         print("Pieces hash :", torrent_data["pieces hash"])
 
     elif command == "download":
-        full_download.full_download()
+
+        torrent_file_data = torrent_data.return_full_data()
+        ip_port_list = Peers(torrent_file_data).get_data()["ip"]
+
+        download = Download(ip_port_list)
+        FullFileDownload(download)
 
 if __name__ == "__main__":
     main()

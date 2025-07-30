@@ -9,12 +9,12 @@ from app.socket import Socket
 from app.torrentRead import TorrentRead
 
 class Download:
-    def __init__(self):
+    def __init__(self, ip_port_list):
         self.torrent_file = sys.argv[2]
         self.torrent_data = TorrentRead(self.torrent_file)
-        self.peers = Peers()
         self.handshake = HandshakeMsg()
-        self.ip_port_list = Peers().gen_peers_ip()
+        # self.ip_port_list = Peers(self.torrent_data.return_full_data()).get_data()["ip"]
+        self.ip_port_list = ip_port_list
         self.already_downloaded_pieces = []
 
 
