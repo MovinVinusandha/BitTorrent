@@ -1,4 +1,3 @@
-import hashlib
 import struct
 
 from app.Download.HandshakeValidator import HandshakeValidator
@@ -7,6 +6,7 @@ from app.messages import Messages
 from app.Download.NetworkConnectionManager import NetworkConnectionManager
 from app.Download.PieceDownloader import PieceDownloader
 from app.Download.DataReceiver import DataReceiver
+from app.Download.PieceValidator import PieceValidator
 
 class Download:
     def __init__(self, peers_pieces, torrent_read_class, handshake_handler):
@@ -18,6 +18,7 @@ class Download:
         self.handshake_validator = HandshakeValidator(handshake_handler.get_expected_info_hash())
         self.connection_manager = NetworkConnectionManager()
         self.data_receiver = DataReceiver()
+        self.piece_validator = PieceValidator(self.torrent_data.return_full_data()["pieces hash"])
 
     def download(self, ip, port, pieces):
         print(f"\n=== Starting download from {ip}:{port} ===")
@@ -63,10 +64,8 @@ class Download:
                 # Download piece
                 piece_data = piece_downloader.download_piece(soc, piece_index, piece_size)
 
-                piece_hash = hashlib.sha1(piece_data).hexdigest()
-                expected_hash = self.torrent_data.return_full_data()["pieces hash"][piece_index]
-
-                if piece_hash == expected_hash:
+                # Validate piece
+                if self.piece_validator.validate_piece(piece_data, piece_index):
                     full_file += piece_data
 
                     message.have(piece_index)
