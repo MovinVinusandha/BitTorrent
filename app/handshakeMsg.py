@@ -1,18 +1,15 @@
 import hashlib
 import struct
-import sys
 import bencodepy
 
 from app.peers import Peers
-from app.torrentRead import TorrentRead
 from app.utilityClass import UtilityClass
 
 PROTOCOL_STR = b"BitTorrent protocol"
 
 class HandshakeMsg:
-    def __init__(self):
-        torrent_file = sys.argv[2]
-        self.torrent_data = TorrentRead(torrent_file)
+    def __init__(self, torrent_read_class):
+        self.torrent_data = torrent_read_class
 
         info = UtilityClass.decode_bencode(self.torrent_data.read_torrent())[b"info"]
         self.info_hash = hashlib.sha1(bencodepy.encode(info)).digest()

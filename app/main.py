@@ -1,5 +1,6 @@
 import sys
 
+from app.TorrentHandshakeHandler import TorrentHandshakeHandler
 from app.download import Download
 from app.fullFileDownload import FullFileDownload
 from app.torrentRead import TorrentRead
@@ -28,8 +29,10 @@ def main():
         torrent_file_data = torrent_data.return_full_data()
         ip_port_list = Peers(torrent_file_data).get_data()["ip"]
 
-        peer_pieces = PeersPieces(ip_port_list)
-        download = Download(peer_pieces)
+        handshake_handler = TorrentHandshakeHandler(torrent_data)
+
+        peer_pieces = PeersPieces(ip_port_list, handshake_handler)
+        download = Download(peer_pieces, torrent_data, handshake_handler)
 
         socket_with_pieces = peer_pieces.get_data()
         FullFileDownload(download, socket_with_pieces)

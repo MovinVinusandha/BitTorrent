@@ -1,26 +1,23 @@
 import hashlib
 import struct
-import sys
 
 from app.handshakeMsg import HandshakeMsg
-from app.peers import Peers
 from app.messages import Messages
 from app.socket import Socket
-from app.torrentRead import TorrentRead
 
 class Download:
-    def __init__(self, peers_pieces):
-        self.torrent_file = sys.argv[2]
-        self.torrent_data = TorrentRead(self.torrent_file)
-        self.handshake = HandshakeMsg()
+    def __init__(self, peers_pieces, torrent_read_class, handshake_handler):
+        self.torrent_data = torrent_read_class
+        self.handshake = HandshakeMsg(torrent_read_class)
         self.peerPieces = peers_pieces
         self.already_downloaded_pieces = []
+        self.handshake_handler = handshake_handler
 
     def download(self, ip, port, pieces):
         with Socket(ip, port) as peer_con:
             print(f"\nConnect to {ip}")
 
-            handshake_msg_response = self.handshake_connection(peer_con.sock)
+            handshake_msg_response = self.handshake_handler.perform_handshake(peer_con.sock)
             if handshake_msg_response["info_hash"] == self.handshake.info_hash:
                 self.peerPieces.bitfield(peer_con.sock)
                 self.wait_for_unchoke(peer_con.sock)
@@ -31,11 +28,6 @@ class Download:
             else:
                 print("handshake validate fail")
                 return None
-
-    def handshake_connection(self, soc):
-        """Return dictionary containing parsed handshake message response"""
-        soc.send(self.handshake.handshake_msg())
-        return self.handshake.handshake_msg_unpack(soc)
 
     def wait_for_unchoke(self, soc):
         """Verify peer has unchoked us; raise exception if still choked"""

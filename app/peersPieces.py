@@ -1,11 +1,10 @@
-from app.download import Download
 from app.messages import Messages
 from app.socket import Socket
-from app.handshakeMsg import HandshakeMsg
 
 class PeersPieces:
-    def __init__(self, ip_port_list):
+    def __init__(self, ip_port_list, handshake_handler):
         self.ip_port_list = ip_port_list
+        self.handshake_handler = handshake_handler
 
     def pieces_with_socket(self):
         socket_and_pieces = {}
@@ -14,8 +13,10 @@ class PeersPieces:
             ip, port = self.ip_port_list[i].split(":")
 
             with Socket(ip, int(port)) as peer_con:
-                handshake_msg_response = Download(self).handshake_connection(peer_con.sock)
-                if handshake_msg_response["info_hash"] == HandshakeMsg().info_hash:
+                handshake_response = self.handshake_handler.perform_handshake(peer_con.sock)
+                expected_hash = self.handshake_handler.get_expected_info_hash()
+
+                if handshake_response["info_hash"] == expected_hash:
                     avalable_pieces = self.bitfield(peer_con.sock)
                     socket_and_pieces[self.ip_port_list[i]] = avalable_pieces
 
