@@ -2,7 +2,6 @@ import sys
 
 from app.TorrentHandshakeHandler import TorrentHandshakeHandler
 from app.download import Download
-from app.fullFileDownload import FullFileDownload
 from app.torrentRead import TorrentRead
 from app.peers import Peers
 from app.peersPieces import PeersPieces
@@ -32,10 +31,8 @@ def main():
         handshake_handler = TorrentHandshakeHandler(torrent_data)
 
         peer_pieces = PeersPieces(ip_port_list, handshake_handler)
-        download = Download(peer_pieces, torrent_data, handshake_handler)
-
         socket_with_pieces = peer_pieces.get_data()
-        FullFileDownload(download, socket_with_pieces)
+        download = Download(socket_with_pieces, peer_pieces, torrent_data, handshake_handler)
 
 if __name__ == "__main__":
     main()

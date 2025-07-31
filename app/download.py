@@ -11,8 +11,9 @@ from app.Download.DownloadProgressTracker import DownloadProgressTracker
 from app.Download.FileAssembler import FileAssembler
 
 class Download:
-    def __init__(self, peers_pieces, torrent_read_class, handshake_handler, output_file_path="./downloaded_file.txt"):
+    def __init__(self, socket_with_pieces, peers_pieces, torrent_read_class, handshake_handler, output_file_path="./downloaded_file.txt"):
         self.torrent_data = torrent_read_class
+        self.socket_with_pieces = socket_with_pieces
         self.handshake = HandshakeMsg(torrent_read_class)
         self.peerPieces = peers_pieces
         self.handshake_handler = handshake_handler
@@ -30,12 +31,21 @@ class Download:
         self.progress_tracker = DownloadProgressTracker(total_pieces)
         self.file_assembler = FileAssembler(output_file_path)
 
+        self.full_download()
+
+    def full_download(self):
+
+        for ip_port, pieces_index in self.socket_with_pieces.items():
+            ip, port = ip_port.split(":")
+            file = self.download(ip, int(port), pieces_index)
+
+            self.file_assembler.save_to_file(file)
+
     def download(self, ip, port, pieces):
         print(f"\n=== Starting download from {ip}:{port} ===")
         connection = self.connection_manager.connect_to_peer(ip, port)
 
         with connection:
-            print(f"\nConnect to {ip}")
 
             handshake_msg_response = self.handshake_handler.perform_handshake(connection.sock)
             if self.handshake_validator.validate_and_log(handshake_msg_response, f"{ip}:{port}"):
@@ -67,7 +77,6 @@ class Download:
         # Get pieces that still need downloading
         remaining_pieces = self.progress_tracker.get_remaining_pieces(available_pieces)
 
-        full_file = b""
         for piece_index in remaining_pieces:
             # Track piece start
             self.progress_tracker.mark_piece_started(piece_index)
@@ -81,19 +90,14 @@ class Download:
             if self.piece_validator.validate_piece(piece_data, piece_index):
                 # Add to assembler
                 self.file_assembler.add_piece(piece_index, piece_data)
-                # full_file += piece_data
 
                 # Update progress
                 self.progress_tracker.mark_piece_completed(piece_index, piece_size)
-
                 message.have(piece_index)
 
-                # self.already_downloaded_pieces.append(piece_index)
             else:
                 self.progress_tracker.mark_piece_failed(piece_index)
                 print(f"Piece {piece_index} hash validation failed!")
-
-        return full_file
 
     def get_last_piece_length(self, total_length, piece_length):
         """Return integer representing the length of the last piece"""
