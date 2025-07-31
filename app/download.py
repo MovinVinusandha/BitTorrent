@@ -2,7 +2,7 @@ import struct
 
 from app.Download.HandshakeValidator import HandshakeValidator
 from app.handshakeMsg import HandshakeMsg
-from app.messages import Messages
+from app.Download.MessageHandler import MessageHandler
 from app.Download.NetworkConnectionManager import NetworkConnectionManager
 from app.Download.PieceDownloader import PieceDownloader
 from app.Download.DataReceiver import DataReceiver
@@ -58,7 +58,7 @@ class Download:
 
     def download_pieces(self, soc, available_pieces):
         """Return byte string containing downloaded piece data"""
-        message = Messages(soc)
+        message = MessageHandler(soc)
         piece_downloader = PieceDownloader(message, self.data_receiver)
 
         total_length = self.torrent_data.return_full_data()["length"]

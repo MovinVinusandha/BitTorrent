@@ -1,4 +1,4 @@
-from app.messages import Messages
+from app.Download.MessageHandler import MessageHandler
 from app.socket import Socket
 
 class PeersPieces:
@@ -26,7 +26,7 @@ class PeersPieces:
 
     def bitfield(self, soc):
         """Return list of available piece indexes extracted from bitfield"""
-        message = Messages(soc)
+        message = MessageHandler(soc)
         bitfield = message.interested()
 
         bitfield_str = self.decode_bitfield(bitfield)

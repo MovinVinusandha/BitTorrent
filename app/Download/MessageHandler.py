@@ -1,6 +1,6 @@
 import struct
 
-class Messages:
+class MessageHandler:
     def __init__(self, soc):
         self.socket = soc
 
