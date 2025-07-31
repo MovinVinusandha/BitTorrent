@@ -8,13 +8,13 @@ from app.Download.PieceDownloader import PieceDownloader
 from app.Download.DataReceiver import DataReceiver
 from app.Download.PieceValidator import PieceValidator
 from app.Download.DownloadProgressTracker import DownloadProgressTracker
+from app.Download.FileAssembler import FileAssembler
 
 class Download:
-    def __init__(self, peers_pieces, torrent_read_class, handshake_handler):
+    def __init__(self, peers_pieces, torrent_read_class, handshake_handler, output_file_path="./downloaded_file.txt"):
         self.torrent_data = torrent_read_class
         self.handshake = HandshakeMsg(torrent_read_class)
         self.peerPieces = peers_pieces
-        self.already_downloaded_pieces = []
         self.handshake_handler = handshake_handler
         self.handshake_validator = HandshakeValidator(handshake_handler.get_expected_info_hash())
         self.connection_manager = NetworkConnectionManager()
@@ -28,6 +28,7 @@ class Download:
         self.data_receiver = DataReceiver()
         self.piece_validator = PieceValidator(full_data["pieces hash"])
         self.progress_tracker = DownloadProgressTracker(total_pieces)
+        self.file_assembler = FileAssembler(output_file_path)
 
     def download(self, ip, port, pieces):
         print(f"\n=== Starting download from {ip}:{port} ===")
@@ -41,9 +42,9 @@ class Download:
                 self.peerPieces.bitfield(connection.sock)
                 self.wait_for_unchoke(connection.sock)
 
-                file = self.download_pieces(connection, pieces)
+                self.download_pieces(connection, pieces)
 
-                return file
+                return self.file_assembler.assemble_file()
             else:
                 print("handshake validate fail")
                 return None
@@ -78,14 +79,16 @@ class Download:
 
             # Validate piece
             if self.piece_validator.validate_piece(piece_data, piece_index):
-                full_file += piece_data
+                # Add to assembler
+                self.file_assembler.add_piece(piece_index, piece_data)
+                # full_file += piece_data
 
                 # Update progress
                 self.progress_tracker.mark_piece_completed(piece_index, piece_size)
 
                 message.have(piece_index)
 
-                self.already_downloaded_pieces.append(piece_index)
+                # self.already_downloaded_pieces.append(piece_index)
             else:
                 self.progress_tracker.mark_piece_failed(piece_index)
                 print(f"Piece {piece_index} hash validation failed!")
