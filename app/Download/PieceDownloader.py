@@ -32,6 +32,10 @@ class PieceDownloader:
 
             piece_data += block_data
 
+            # Progress feedback
+            progress = (len(piece_data) / piece_size) * 100
+            print(f"Piece {piece_index}: {progress:.1f}% complete")
+
         return piece_data
 
     def calculate_piece_size(self, piece_index, total_length, standard_piece_length):
