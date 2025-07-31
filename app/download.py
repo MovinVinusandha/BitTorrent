@@ -7,6 +7,7 @@ from app.Download.NetworkConnectionManager import NetworkConnectionManager
 from app.Download.PieceDownloader import PieceDownloader
 from app.Download.DataReceiver import DataReceiver
 from app.Download.PieceValidator import PieceValidator
+from app.Download.DownloadProgressTracker import DownloadProgressTracker
 
 class Download:
     def __init__(self, peers_pieces, torrent_read_class, handshake_handler):
@@ -17,8 +18,16 @@ class Download:
         self.handshake_handler = handshake_handler
         self.handshake_validator = HandshakeValidator(handshake_handler.get_expected_info_hash())
         self.connection_manager = NetworkConnectionManager()
+
+        # Get torrent information
+        full_data = self.torrent_data.return_full_data()
+        total_length = full_data["length"]
+        piece_length = full_data["piece length"]
+        total_pieces = (total_length + piece_length - 1) // piece_length
+
         self.data_receiver = DataReceiver()
-        self.piece_validator = PieceValidator(self.torrent_data.return_full_data()["pieces hash"])
+        self.piece_validator = PieceValidator(full_data["pieces hash"])
+        self.progress_tracker = DownloadProgressTracker(total_pieces)
 
     def download(self, ip, port, pieces):
         print(f"\n=== Starting download from {ip}:{port} ===")
@@ -53,26 +62,33 @@ class Download:
 
         total_length = self.torrent_data.return_full_data()["length"]
         standard_piece_length = self.torrent_data.return_full_data()["piece length"]
-        block_size = 16384
+
+        # Get pieces that still need downloading
+        remaining_pieces = self.progress_tracker.get_remaining_pieces(available_pieces)
 
         full_file = b""
-        for piece_index in available_pieces:
-            if not piece_index in self.already_downloaded_pieces:
+        for piece_index in remaining_pieces:
+            # Track piece start
+            self.progress_tracker.mark_piece_started(piece_index)
 
-                # Calculate piece size
-                piece_size = piece_downloader.calculate_piece_size(piece_index, total_length, standard_piece_length)
-                # Download piece
-                piece_data = piece_downloader.download_piece(soc, piece_index, piece_size)
+            # Calculate piece size
+            piece_size = piece_downloader.calculate_piece_size(piece_index, total_length, standard_piece_length)
+            # Download piece
+            piece_data = piece_downloader.download_piece(soc, piece_index, piece_size)
 
-                # Validate piece
-                if self.piece_validator.validate_piece(piece_data, piece_index):
-                    full_file += piece_data
+            # Validate piece
+            if self.piece_validator.validate_piece(piece_data, piece_index):
+                full_file += piece_data
 
-                    message.have(piece_index)
+                # Update progress
+                self.progress_tracker.mark_piece_completed(piece_index, piece_size)
 
-                    self.already_downloaded_pieces.append(piece_index)
-                else:
-                    print(f"Piece {piece_index} hash validation failed!")
+                message.have(piece_index)
+
+                self.already_downloaded_pieces.append(piece_index)
+            else:
+                self.progress_tracker.mark_piece_failed(piece_index)
+                print(f"Piece {piece_index} hash validation failed!")
 
         return full_file
 
