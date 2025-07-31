@@ -5,6 +5,8 @@ from app.Download.HandshakeValidator import HandshakeValidator
 from app.handshakeMsg import HandshakeMsg
 from app.messages import Messages
 from app.Download.NetworkConnectionManager import NetworkConnectionManager
+from app.Download.PieceDownloader import PieceDownloader
+from app.Download.DataReceiver import DataReceiver
 
 class Download:
     def __init__(self, peers_pieces, torrent_read_class, handshake_handler):
@@ -15,6 +17,7 @@ class Download:
         self.handshake_handler = handshake_handler
         self.handshake_validator = HandshakeValidator(handshake_handler.get_expected_info_hash())
         self.connection_manager = NetworkConnectionManager()
+        self.data_receiver = DataReceiver()
 
     def download(self, ip, port, pieces):
         print(f"\n=== Starting download from {ip}:{port} ===")
@@ -28,7 +31,7 @@ class Download:
                 self.peerPieces.bitfield(connection.sock)
                 self.wait_for_unchoke(connection.sock)
 
-                file = self.download_pieces(connection.sock, pieces)
+                file = self.download_pieces(connection, pieces)
 
                 return file
             else:
@@ -45,32 +48,20 @@ class Download:
     def download_pieces(self, soc, available_pieces):
         """Return byte string containing downloaded piece data"""
         message = Messages(soc)
+        piece_downloader = PieceDownloader(message, self.data_receiver)
 
-        full_length = self.torrent_data.return_full_data()["length"]
+        total_length = self.torrent_data.return_full_data()["length"]
         standard_piece_length = self.torrent_data.return_full_data()["piece length"]
         block_size = 16384
 
         full_file = b""
         for piece_index in available_pieces:
             if not piece_index in self.already_downloaded_pieces:
-                print(f"Downloading piece index: {piece_index}")
 
-                total_pieces = (full_length + standard_piece_length - 1) // standard_piece_length
-                if piece_index == total_pieces - 1:
-                    piece_size = self.get_last_piece_length(full_length, standard_piece_length)
-                else:
-                    piece_size = standard_piece_length
-
-                piece_data = b""
-                for begin in range(0, piece_size, block_size):
-                    block_len = min(block_size, piece_size - begin)
-
-                    message.request(piece_index, begin, block_len)
-
-                    response = self.recv_exact(soc, 13 + block_len)
-                    block_data = response[13:]
-
-                    piece_data += block_data
+                # Calculate piece size
+                piece_size = piece_downloader.calculate_piece_size(piece_index, total_length, standard_piece_length)
+                # Download piece
+                piece_data = piece_downloader.download_piece(soc, piece_index, piece_size)
 
                 piece_hash = hashlib.sha1(piece_data).hexdigest()
                 expected_hash = self.torrent_data.return_full_data()["pieces hash"][piece_index]
@@ -78,8 +69,7 @@ class Download:
                 if piece_hash == expected_hash:
                     full_file += piece_data
 
-                    have_msg = struct.pack(">IbI", 5, 4, piece_index)
-                    soc.sendall(have_msg)
+                    message.have(piece_index)
 
                     self.already_downloaded_pieces.append(piece_index)
                 else:

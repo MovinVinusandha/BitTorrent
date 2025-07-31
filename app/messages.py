@@ -11,5 +11,8 @@ class Messages:
 
     def request(self, piece_index, begin, block_len):
         msg = struct.pack(">IbIII", 13, 6, piece_index, begin, block_len)
-        self.socket.sendall(msg)
-        return self.socket
+        self.socket.sock.sendall(msg)
+
+    def have(self, piece_index):
+        have_msg = struct.pack(">IbI", 5, 4, piece_index)
+        self.socket.sock.sendall(have_msg)
