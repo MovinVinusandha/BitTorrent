@@ -4,7 +4,7 @@ import struct
 from app.Download.HandshakeValidator import HandshakeValidator
 from app.handshakeMsg import HandshakeMsg
 from app.messages import Messages
-from app.socket import Socket
+from app.Download.NetworkConnectionManager import NetworkConnectionManager
 
 class Download:
     def __init__(self, peers_pieces, torrent_read_class, handshake_handler):
@@ -14,17 +14,21 @@ class Download:
         self.already_downloaded_pieces = []
         self.handshake_handler = handshake_handler
         self.handshake_validator = HandshakeValidator(handshake_handler.get_expected_info_hash())
+        self.connection_manager = NetworkConnectionManager()
 
     def download(self, ip, port, pieces):
-        with Socket(ip, port) as peer_con:
+        print(f"\n=== Starting download from {ip}:{port} ===")
+        connection = self.connection_manager.connect_to_peer(ip, port)
+
+        with connection:
             print(f"\nConnect to {ip}")
 
-            handshake_msg_response = self.handshake_handler.perform_handshake(peer_con.sock)
+            handshake_msg_response = self.handshake_handler.perform_handshake(connection.sock)
             if self.handshake_validator.validate_and_log(handshake_msg_response, f"{ip}:{port}"):
-                self.peerPieces.bitfield(peer_con.sock)
-                self.wait_for_unchoke(peer_con.sock)
+                self.peerPieces.bitfield(connection.sock)
+                self.wait_for_unchoke(connection.sock)
 
-                file = self.download_pieces(peer_con.sock, pieces)
+                file = self.download_pieces(connection.sock, pieces)
 
                 return file
             else:
