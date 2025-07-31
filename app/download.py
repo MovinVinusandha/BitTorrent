@@ -59,6 +59,29 @@ class Download:
                 print("handshake validate fail")
                 return None
 
+    def finalize_download_report(self):
+        """Complete the download process"""
+        print("\n=== Finalizing download ===")
+
+        # Show final progress
+        report = self.progress_tracker.get_progress_report()
+        print(f"Download completed: {report['progress_percentage']:.1f}%")
+        print(f"Total pieces: {report['downloaded_pieces']}/{report['total_pieces']}")
+
+        if report['is_complete']:
+            # Assemble and save file
+            success = self.file_assembler.save_to_file()
+
+            if success:
+                print("Download completed successfully!")
+                return True
+            else:
+                print("Failed to save final file")
+                return False
+        else:
+            print("Download incomplete - some pieces missing")
+            return False
+
     def wait_for_unchoke(self, soc):
         """Verify peer has unchoked us; raise exception if still choked"""
         msg = self.recv_exact(soc, 5)

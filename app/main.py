@@ -34,5 +34,7 @@ def main():
         socket_with_pieces = peer_pieces.get_data()
         download = Download(socket_with_pieces, peer_pieces, torrent_data, handshake_handler)
 
+        download.finalize_download_report()
+
 if __name__ == "__main__":
     main()
