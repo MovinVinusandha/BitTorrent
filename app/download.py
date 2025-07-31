@@ -37,31 +37,33 @@ class Download:
 
         for ip_port, pieces_index in self.socket_with_pieces.items():
             ip, port = ip_port.split(":")
-            file = self.download(ip, int(port), pieces_index)
-
-            self.file_assembler.save_to_file(file)
+            self.download(ip, int(port), pieces_index)
 
     def download(self, ip, port, pieces):
-        print(f"\n=== Starting download from {ip}:{port} ===")
-        connection = self.connection_manager.connect_to_peer(ip, port)
+        remaining_pieces = self.progress_tracker.get_remaining_pieces(pieces)
+        if set(remaining_pieces) & set(pieces):
 
-        with connection:
+            print(f"\n=== Starting download from {ip}:{port} ===\n")
+            connection = self.connection_manager.connect_to_peer(ip, port)
 
-            handshake_msg_response = self.handshake_handler.perform_handshake(connection.sock)
-            if self.handshake_validator.validate_and_log(handshake_msg_response, f"{ip}:{port}"):
-                self.peerPieces.bitfield(connection.sock)
-                self.wait_for_unchoke(connection.sock)
+            with connection:
+                handshake_msg_response = self.handshake_handler.perform_handshake(connection.sock)
+                if self.handshake_validator.validate_and_log(handshake_msg_response, f"{ip}:{port}"):
+                    self.peerPieces.bitfield(connection.sock)
+                    self.wait_for_unchoke(connection.sock)
 
-                self.download_pieces(connection, pieces)
+                    self.download_pieces(connection, pieces)
 
-                return self.file_assembler.assemble_file()
-            else:
-                print("handshake validate fail")
-                return None
+                    return self.file_assembler.assemble_file()
+                else:
+                    print("handshake validate fail")
+                    return None
+        else:
+            return None
 
     def finalize_download_report(self):
         """Complete the download process"""
-        print("\n=== Finalizing download ===")
+        print("\n=== Finalizing download ===\n")
 
         # Show final progress
         report = self.progress_tracker.get_progress_report()
