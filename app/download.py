@@ -1,6 +1,7 @@
 import hashlib
 import struct
 
+from app.Download.HandshakeValidator import HandshakeValidator
 from app.handshakeMsg import HandshakeMsg
 from app.messages import Messages
 from app.socket import Socket
@@ -12,13 +13,14 @@ class Download:
         self.peerPieces = peers_pieces
         self.already_downloaded_pieces = []
         self.handshake_handler = handshake_handler
+        self.handshake_validator = HandshakeValidator(handshake_handler.get_expected_info_hash())
 
     def download(self, ip, port, pieces):
         with Socket(ip, port) as peer_con:
             print(f"\nConnect to {ip}")
 
             handshake_msg_response = self.handshake_handler.perform_handshake(peer_con.sock)
-            if handshake_msg_response["info_hash"] == self.handshake.info_hash:
+            if self.handshake_validator.validate_and_log(handshake_msg_response, f"{ip}:{port}"):
                 self.peerPieces.bitfield(peer_con.sock)
                 self.wait_for_unchoke(peer_con.sock)
 
