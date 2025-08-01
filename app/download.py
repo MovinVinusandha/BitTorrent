@@ -1,5 +1,3 @@
-import struct
-
 from app.Download.HandshakeValidator import HandshakeValidator
 from app.Download.PeerConnectionSetup import PeerConnectionSetup
 from app.handshakeMsg import HandshakeMsg
@@ -121,13 +119,3 @@ class Download:
         """Return integer representing the length of the last piece"""
         remainder = total_length % piece_length
         return remainder if remainder != 0 else piece_length
-
-    def recv_exact(self, soc, total_len):
-        """Return bytes object of length total_len read from socket, blocking until complete"""
-        data = b''
-        while len(data) < total_len:
-            chunk = soc.recv(total_len - len(data))
-            if not chunk:
-                raise Exception("Connection closed unexpectedly")
-            data += chunk
-        return data
