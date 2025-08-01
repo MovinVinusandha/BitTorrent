@@ -31,8 +31,6 @@ class Download:
         self.file_assembler = FileAssembler(output_file_path)
         self.peer_setup = PeerConnectionSetup(self.data_receiver)
 
-        self.full_download()
-
     def full_download(self):
 
         for ip_port, pieces_index in self.socket_with_pieces.items():

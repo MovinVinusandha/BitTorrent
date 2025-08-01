@@ -33,6 +33,7 @@ def main():
         peer_pieces = PeersPieces(ip_port_list, handshake_handler)
         socket_with_pieces = peer_pieces.get_data()
         download = Download(socket_with_pieces, peer_pieces, torrent_data, handshake_handler)
+        download.full_download()
 
         download.finalize_download_report()
 
