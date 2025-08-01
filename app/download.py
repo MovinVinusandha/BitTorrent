@@ -1,6 +1,7 @@
 import struct
 
 from app.Download.HandshakeValidator import HandshakeValidator
+from app.Download.PeerConnectionSetup import PeerConnectionSetup
 from app.handshakeMsg import HandshakeMsg
 from app.Download.MessageHandler import MessageHandler
 from app.Download.NetworkConnectionManager import NetworkConnectionManager
@@ -30,6 +31,7 @@ class Download:
         self.piece_validator = PieceValidator(full_data["pieces hash"])
         self.progress_tracker = DownloadProgressTracker(total_pieces)
         self.file_assembler = FileAssembler(output_file_path)
+        self.peer_setup = PeerConnectionSetup(self.data_receiver)
 
         self.full_download()
 
@@ -49,11 +51,9 @@ class Download:
             with connection:
                 handshake_msg_response = self.handshake_handler.perform_handshake(connection.sock)
                 if self.handshake_validator.validate_and_log(handshake_msg_response, f"{ip}:{port}"):
-                    self.peerPieces.bitfield(connection.sock)
-                    self.wait_for_unchoke(connection.sock)
 
+                    self.peer_setup.setup_peer_connection(connection, self.peerPieces)
                     self.download_pieces(connection, pieces)
-
                     return self.file_assembler.assemble_file()
                 else:
                     print("handshake validate fail")
@@ -83,13 +83,6 @@ class Download:
         else:
             print("Download incomplete - some pieces missing")
             return False
-
-    def wait_for_unchoke(self, soc):
-        """Verify peer has unchoked us; raise exception if still choked"""
-        msg = self.recv_exact(soc, 5)
-        length, msg_id = struct.unpack(">IB", msg)
-        if msg_id != 1:
-            raise Exception("Expected unchoke")
 
     def download_pieces(self, soc, available_pieces):
         """Return byte string containing downloaded piece data"""
