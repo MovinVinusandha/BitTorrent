@@ -11,13 +11,13 @@ from app.Download.FileAssembler import FileAssembler
 
 class Download:
     def __init__(self, socket_with_pieces, peers_pieces, torrent_read_class, handshake_handler, output_file_path="./downloaded_file.txt"):
-        self.torrent_data = torrent_read_class
+        # Configuration
         self.socket_with_pieces = socket_with_pieces
-        self.handshake = HandshakeMsg(torrent_read_class)
-        self.peerPieces = peers_pieces
+        self.torrent_data = torrent_read_class
+
+        # Core components
         self.handshake_handler = handshake_handler
-        self.handshake_validator = HandshakeValidator(handshake_handler.get_expected_info_hash())
-        self.connection_manager = NetworkConnectionManager()
+        self.peerPieces = peers_pieces
 
         # Get torrent information
         full_data = self.torrent_data.return_full_data()
@@ -25,6 +25,10 @@ class Download:
         piece_length = full_data["piece length"]
         total_pieces = (total_length + piece_length - 1) // piece_length
 
+        # initialize_components
+        self.handshake = HandshakeMsg(torrent_read_class)
+        self.handshake_validator = HandshakeValidator(handshake_handler.get_expected_info_hash())
+        self.connection_manager = NetworkConnectionManager()
         self.data_receiver = DataReceiver()
         self.piece_validator = PieceValidator(full_data["pieces hash"])
         self.progress_tracker = DownloadProgressTracker(total_pieces)
@@ -56,29 +60,6 @@ class Download:
                     return None
         else:
             return None
-
-    def finalize_download_report(self):
-        """Complete the download process"""
-        print("\n=== Finalizing download ===\n")
-
-        # Show final progress
-        report = self.progress_tracker.get_progress_report()
-        print(f"Download completed: {report['progress_percentage']:.1f}%")
-        print(f"Total pieces: {report['downloaded_pieces']}/{report['total_pieces']}")
-
-        if report['is_complete']:
-            # Assemble and save file
-            success = self.file_assembler.save_to_file()
-
-            if success:
-                print("Download completed successfully!")
-                return True
-            else:
-                print("Failed to save final file")
-                return False
-        else:
-            print("Download incomplete - some pieces missing")
-            return False
 
     def download_pieces(self, soc, available_pieces):
         """Return byte string containing downloaded piece data"""
@@ -112,6 +93,29 @@ class Download:
             else:
                 self.progress_tracker.mark_piece_failed(piece_index)
                 print(f"Piece {piece_index} hash validation failed!")
+
+    def finalize_download_report(self):
+        """Complete the download process"""
+        print("\n=== Finalizing download ===\n")
+
+        # Show final progress
+        report = self.progress_tracker.get_progress_report()
+        print(f"Download completed: {report['progress_percentage']:.1f}%")
+        print(f"Total pieces: {report['downloaded_pieces']}/{report['total_pieces']}")
+
+        if report['is_complete']:
+            # Assemble and save file
+            success = self.file_assembler.save_to_file()
+
+            if success:
+                print("Download completed successfully!")
+                return True
+            else:
+                print("Failed to save final file")
+                return False
+        else:
+            print("Download incomplete - some pieces missing")
+            return False
 
     def get_last_piece_length(self, total_length, piece_length):
         """Return integer representing the length of the last piece"""
