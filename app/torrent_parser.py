@@ -9,6 +9,15 @@ class TorrentParser:
         self.raw_data = self.read_torrent()
         self.decoded_data = Utils.decode_bencode(self.raw_data)
 
+    def _safe_decode(self, byte_str, default=""):
+        """Safely decode byte strings. Falls back if not valid UTF-8."""
+        if byte_str is None:
+            return default
+        try:
+            return byte_str.decode('utf-8')
+        except UnicodeDecodeError:
+            return byte_str.decode('latin-1', errors='replace')
+
     def read_torrent(self):
         """Return byte string containing the contents of the torrent file"""
         with open(self.torrent_file, "rb") as f:
@@ -35,11 +44,29 @@ class TorrentParser:
             item_index += 20
 
         return piece_hashes_list
+    
+    def get_trackers(self):
+        """Get all trackers, handling both standard 'announce' and 'announce-list'."""
+        trackers = []
+        
+        # Check for multi-tracker list (BEP 12)
+        if b"announce-list" in self.decoded_data:
+            for tier in self.decoded_data[b"announce-list"]:
+                for tracker in tier:
+                    trackers.append(self._safe_decode(tracker))
+                    
+        # Fallback to single tracker
+        elif b"announce" in self.decoded_data:
+            trackers.append(self._safe_decode(self.decoded_data[b"announce"]))
+            
+        return trackers
 
     def return_full_data(self):
         """Return a standardized dictionary of the torrent data."""
+        
         return{
-            "tracker url": self.decoded_data[b"announce"].decode(),
+            "tracker url": self.get_trackers()[0] if self.get_trackers() else "",
+            "all trackers": self.get_trackers(),
             "created by": self.decoded_data[b"created by"].decode(),
             "info": self.decoded_data[b"info"],
             "name": self.decoded_data[b"info"][b"name"],
