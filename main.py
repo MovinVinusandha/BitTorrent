@@ -1,4 +1,6 @@
 import sys
+from pprint import pprint
+
 
 from app.handshake_handler import TorrentHandshakeHandler
 from app.download import Download
@@ -14,14 +16,8 @@ def main():
 
     if command == "read":
         torrent_data = torrent_data.return_full_data()
-
-        print("Tracker URL :", torrent_data["tracker url"])
-        print("Created by :", torrent_data["created by"])
-        print("File length :", torrent_data["length"])
-        print("Piece length :", torrent_data["piece length"])
-        print("File Name :", torrent_data["name"])
-        print("Info hash :", torrent_data["info hash"])
-        print("Pieces hash :", torrent_data["pieces hash"])
+        torrent_data.pop("info")
+        pprint(torrent_data)
 
     elif command == "download":
 

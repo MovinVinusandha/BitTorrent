@@ -6,6 +6,8 @@ from app.utils import Utils
 class TorrentParser:
     def __init__(self, torrent_file):
         self.torrent_file = torrent_file
+        self.raw_data = self.read_torrent()
+        self.decoded_data = Utils.decode_bencode(self.raw_data)
 
     def read_torrent(self):
         """Return byte string containing the contents of the torrent file"""
@@ -35,21 +37,14 @@ class TorrentParser:
         return piece_hashes_list
 
     def return_full_data(self):
-        data_dictionary = {}
-        decode_dict = Utils.decode_bencode(self.read_torrent())
-
-        data_dictionary["tracker url"] = decode_dict[b"announce"].decode()
-
-        data_dictionary["created by"] = decode_dict[b"created by"].decode()
-
-        info = decode_dict[b"info"]
-
-        data_dictionary["info"] = info
-
-        data_dictionary["name"] = info[b"name"]
-        data_dictionary["piece length"] = info[b"piece length"]
-        data_dictionary["info hash"] = self.calculate_info_hash(decode_dict).hexdigest()
-        data_dictionary["pieces hash"] = self.calculate_pieces_hash(decode_dict)
-        data_dictionary["length"] = info[b"length"]
-
-        return data_dictionary
+        """Return a standardized dictionary of the torrent data."""
+        return{
+            "tracker url": self.decoded_data[b"announce"].decode(),
+            "created by": self.decoded_data[b"created by"].decode(),
+            "info": self.decoded_data[b"info"],
+            "name": self.decoded_data[b"info"][b"name"],
+            "piece length": self.decoded_data[b"info"][b"piece length"],
+            "info hash": self.calculate_info_hash(self.decoded_data).hexdigest(),
+            "pieces hash": self.calculate_pieces_hash(self.decoded_data),
+            "length": self.decoded_data[b"info"][b"length"]
+        }
