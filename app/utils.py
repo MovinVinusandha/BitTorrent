@@ -1,6 +1,6 @@
 import bencodepy
 
-class UtilityClass:
+class Utils:
 
     @staticmethod
     def decode_bencode(readed_torrent):

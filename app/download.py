@@ -1,13 +1,13 @@
-from app.Download.HandshakeValidator import HandshakeValidator
-from app.Download.PeerConnectionSetup import PeerConnectionSetup
-from app.handshakeMsg import HandshakeMsg
-from app.Download.MessageHandler import MessageHandler
-from app.Download.NetworkConnectionManager import NetworkConnectionManager
-from app.Download.PieceDownloader import PieceDownloader
-from app.Download.DataReceiver import DataReceiver
-from app.Download.PieceValidator import PieceValidator
-from app.Download.DownloadProgressTracker import DownloadProgressTracker
-from app.Download.FileAssembler import FileAssembler
+from app.Download.handshake_validator import HandshakeValidator
+from app.Download.peer_connection_setup import PeerConnectionSetup
+from app.handshake_msg import HandshakeMsg
+from app.Download.message_handler import MessageHandler
+from app.Download.network_connection_manager import NetworkConnectionManager
+from app.Download.piece_downloader import PieceDownloader
+from app.Download.data_receiver import DataReceiver
+from app.Download.piece_validator import PieceValidator
+from app.Download.download_progress_tracker import DownloadProgressTracker
+from app.Download.file_assembler import FileAssembler
 
 class Download:
     def __init__(self, socket_with_pieces, peers_pieces, torrent_read_class, handshake_handler, output_file_path="./downloaded_file.txt"):

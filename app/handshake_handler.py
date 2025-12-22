@@ -1,4 +1,4 @@
-from app.handshakeMsg import HandshakeMsg
+from app.handshake_msg import HandshakeMsg
 
 
 class TorrentHandshakeHandler:

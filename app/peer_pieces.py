@@ -1,4 +1,4 @@
-from app.Download.MessageHandler import MessageHandler
+from app.Download.message_handler import MessageHandler
 from app.socket import Socket
 
 class PeersPieces:

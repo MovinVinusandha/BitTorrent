@@ -1,9 +1,9 @@
 import bencodepy
 import hashlib
 
-from app.utilityClass import UtilityClass
+from app.utils import Utils
 
-class TorrentRead:
+class TorrentParser:
     def __init__(self, torrent_file):
         self.torrent_file = torrent_file
 
@@ -36,7 +36,7 @@ class TorrentRead:
 
     def return_full_data(self):
         data_dictionary = {}
-        decode_dict = UtilityClass.decode_bencode(self.read_torrent())
+        decode_dict = Utils.decode_bencode(self.read_torrent())
 
         data_dictionary["tracker url"] = decode_dict[b"announce"].decode()
 

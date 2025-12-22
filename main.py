@@ -1,16 +1,16 @@
 import sys
 
-from app.TorrentHandshakeHandler import TorrentHandshakeHandler
+from app.handshake_handler import TorrentHandshakeHandler
 from app.download import Download
-from app.torrentRead import TorrentRead
+from app.torrent_parser import TorrentParser
 from app.peers import Peers
-from app.peersPieces import PeersPieces
+from app.peer_pieces import PeersPieces
 
 def main():
     command = sys.argv[1]
     torrent_file = sys.argv[2]
 
-    torrent_data = TorrentRead(torrent_file)
+    torrent_data = TorrentParser(torrent_file)
 
     if command == "read":
         torrent_data = torrent_data.return_full_data()
