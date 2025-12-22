@@ -8,6 +8,7 @@ class TorrentParser:
         self.torrent_file = torrent_file
         self.raw_data = self.read_torrent()
         self.decoded_data = Utils.decode_bencode(self.raw_data)
+        self.info_dict = self.decoded_data[b"info"]
 
     def _safe_decode(self, byte_str, default=""):
         """Safely decode byte strings. Falls back if not valid UTF-8."""
@@ -49,17 +50,44 @@ class TorrentParser:
         """Get all trackers, handling both standard 'announce' and 'announce-list'."""
         trackers = []
         
-        # Check for multi-tracker list (BEP 12)
         if b"announce-list" in self.decoded_data:
             for tier in self.decoded_data[b"announce-list"]:
                 for tracker in tier:
                     trackers.append(self._safe_decode(tracker))
                     
-        # Fallback to single tracker
         elif b"announce" in self.decoded_data:
             trackers.append(self._safe_decode(self.decoded_data[b"announce"]))
             
         return trackers
+    
+    def get_files(self):
+        """
+        Determine if it's a single or multi-file torrent and return a standard format:
+        List of dictionaries with 'path' and 'length'.
+        """
+        files = []
+        base_name = self._safe_decode(self.info_dict.get(b"name", b"Unknown"))
+
+        if b"files" in self.info_dict:
+            for f in self.info_dict[b"files"]:
+                path_parts = [self._safe_decode(p) for p in f[b"path"]]
+                full_path = "/".join([base_name] + path_parts)
+                files.append({
+                    "path": full_path,
+                    "length": f[b"length"]
+                })
+        else:
+            files.append({
+                "path": base_name,
+                "length": self.info_dict.get(b"length", 0)
+            })
+            
+        return files
+
+    
+    def get_total_length(self):
+        """Sum the lengths of all files."""
+        return sum(f["length"] for f in self.get_files())
 
     def return_full_data(self):
         """Return a standardized dictionary of the torrent data."""
@@ -68,10 +96,12 @@ class TorrentParser:
             "tracker url": self.get_trackers()[0] if self.get_trackers() else "",
             "all trackers": self.get_trackers(),
             "created by": self.decoded_data[b"created by"].decode(),
-            "info": self.decoded_data[b"info"],
-            "name": self.decoded_data[b"info"][b"name"],
-            "piece length": self.decoded_data[b"info"][b"piece length"],
+            "comment": self._safe_decode(self.decoded_data.get(b"comment")),
+            "info": self.info_dict,
+            "name": self._safe_decode(self.info_dict.get(b"name", b"Unknown")),
+            "piece length": self.info_dict[b"piece length"],
             "info hash": self.calculate_info_hash(self.decoded_data).hexdigest(),
             "pieces hash": self.calculate_pieces_hash(self.decoded_data),
-            "length": self.decoded_data[b"info"][b"length"]
+            "length": self.get_total_length(),
+            "files": self.get_files(),
         }
