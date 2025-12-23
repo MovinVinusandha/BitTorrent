@@ -2,7 +2,7 @@ import hashlib
 import struct
 import bencodepy
 
-from app.peers import Peers
+from app.tracker_manager import TrackerManager
 from app.utils import Utils
 
 PROTOCOL_STR = b"BitTorrent protocol"
@@ -19,7 +19,7 @@ class HandshakeMsg:
         """Return byte object of handshake message"""
         protocol_str_len = len(PROTOCOL_STR)
         reserved_bytes = bytes(8)
-        peer_id = Peers.peer_id_gen()
+        peer_id = Utils.peer_id_gen()
 
         handshake_params = struct.pack(
             f'b{protocol_str_len}s8s20s20s',
