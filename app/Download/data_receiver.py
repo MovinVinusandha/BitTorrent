@@ -1,16 +1,23 @@
+import struct
+
 class DataReceiver:
-    """Helper class to receive data from connections"""
-
     def receive_block(self, connection, block_length):
-        """Receive a piece block from peer"""
+        """Receive a piece block from peer, safely ignoring other network messages"""
+        while True:
+            length_bytes = self._recv_exact(connection.sock, 4)
+            msg_length = struct.unpack(">I", length_bytes)[0]
 
-        # Receive message header + block data
-        response = self._recv_exact(connection.sock, 13 + block_length)
+            if msg_length == 0:
+                continue  # Ignore Keep-Alive messages
 
-        # Extract just the block data (skip 13-byte header)
-        block_data = response[13:]
+            payload = self._recv_exact(connection.sock, msg_length)
+            msg_id = payload[0]
 
-        return block_data
+            if msg_id == 7:
+                block_data = payload[9:]
+                return block_data
+            else:
+                pass
 
     def _recv_exact(self, socket, total_length):
         """Receive exactly total_length bytes"""

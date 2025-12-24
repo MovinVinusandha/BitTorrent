@@ -34,11 +34,30 @@ class TrackerManager:
     def get_peers(self):
         """Iterate through all trackers and return the list of peers from the first successful response"""
         for tracker in self.torrent_data["all trackers"]:
-            if tracker.startswith("http") or tracker.startswith("https"):
-                http_client = HttpTrackerClient(tracker, self._build_params())
-                return http_client.request_peers()
-            
-            else:
-                print(f"Unknown tracker protocol for {tracker}, skipping.")
+            peers_list = []
 
+            try:
+                if tracker.startswith("http") or tracker.startswith("https"):
+                    http_client = HttpTrackerClient(tracker, self._build_params())
+                    peers_list = http_client.request_peers()
+
+                elif tracker.startswith("udp"):
+                    udp_client = UdpTrackerClient(tracker, self._build_params())
+                    peers_list = udp_client.request_peers()
+
+                else:
+                    print(f"Unknown tracker protocol for {tracker}, skipping.")
+                    continue
+
+                if peers_list and len(peers_list) > 0:
+                    print(f"Success! Got {len(peers_list)} peers from {tracker}")
+                    return peers_list
+                else:
+                    print(f"Tracker {tracker} returned 0 peers or failed to resolve. Trying next...")
+
+            except Exception as e:
+                print(f"Tracker {tracker} failed: {e}")
+                continue
+
+        print("Error: All trackers failed or returned 0 peers.")
         return []

@@ -1,31 +1,24 @@
-class FileAssembler:
-    """
-    Single Responsibility: Assemble pieces into final file only
-    - Combine downloaded pieces in correct order
-    - Handle file writing
-    - Manage output file path
-    """
+import os
 
-    def __init__(self, output_file_path):
-        self.output_file_path = output_file_path
+class FileAssembler:
+    def __init__(self, files_info, base_output_dir="./downloads"):
+        self.files_info = files_info
+        self.base_output_dir = base_output_dir
         self.piece_data = {}
 
     def add_piece(self, piece_index, piece_data):
-        """Add a validated piece to the assembly"""
+        """Add a piece of the file to the assembler."""
         self.piece_data[piece_index] = piece_data
         print(f"Added piece {piece_index} to assembly ({len(piece_data)} bytes)")
 
     def assemble_file(self):
-        """Assemble all pieces into final file"""
+        """Assemble the full file data from the pieces."""
         if not self.piece_data:
             raise Exception("No pieces to assemble")
 
-        print("Assembling file from downloaded pieces...")
-
-        # Sort pieces by index to ensure correct order
+        print("Assembling giant byte stream from downloaded pieces...")
         sorted_pieces = sorted(self.piece_data.items())
 
-        # Check for missing pieces
         expected_indices = set(range(len(sorted_pieces)))
         actual_indices = set(piece_index for piece_index, _ in sorted_pieces)
 
@@ -33,7 +26,6 @@ class FileAssembler:
             missing = expected_indices - actual_indices
             raise Exception(f"Missing pieces: {missing}")
 
-        # Assemble file data
         full_file_data = b""
         total_size = 0
 
@@ -41,35 +33,46 @@ class FileAssembler:
             full_file_data += piece_data
             total_size += len(piece_data)
 
-            progress = (total_size / sum(len(data) for _, data in sorted_pieces)) * 100
-            print(f"Assembly progress: {progress:.1f}%")
-
-        print(f"Final file assembled: {total_size} bytes")
+        print(f"Giant byte stream assembled: {total_size} bytes")
         return full_file_data
 
     def save_to_file(self, file_data=None):
-        """Save assembled file to disk"""
+        """Save the assembled file data to disk, slicing it according to the provided file info."""
         if file_data is None:
             file_data = self.assemble_file()
 
+        print("Slicing byte stream into individual files...")
         try:
-            with open(self.output_file_path, "wb") as f:
-                f.write(file_data)
+            current_offset = 0
 
-            print(f"File saved successfully: {self.output_file_path}")
-            print(f"File size: {len(file_data)} bytes")
+            for file_info in self.files_info:
+
+                relative_path = file_info["path"]
+                file_length = file_info["length"]
+
+                full_path = os.path.join(self.base_output_dir, relative_path)
+
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+
+                file_chunk = file_data[current_offset: current_offset + file_length]
+
+                with open(full_path, "wb") as f:
+                    f.write(file_chunk)
+
+                print(f"Saved: {full_path} ({file_length} bytes)")
+
+                current_offset += file_length
 
             return True
 
         except Exception as e:
-            print(f"Failed to save file: {e}")
+            print(f"Failed to save files: {e}")
             return False
 
     def get_assembly_status(self):
-        """Get current assembly status"""
+        """Return the current status of the assembly process."""
         return {
             'pieces_count': len(self.piece_data),
             'total_bytes': sum(len(data) for data in self.piece_data.values()),
-            'output_path': self.output_file_path,
             'ready_to_assemble': len(self.piece_data) > 0
         }

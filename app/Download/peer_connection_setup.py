@@ -1,14 +1,6 @@
 import struct
 
 class PeerConnectionSetup:
-    """
-    Single Responsibility: Handle BitTorrent peer connection setup
-    - Exchange bitfield information
-    - Send interested message
-    - Wait for unchoke
-    - Manage peer state transitions
-    """
-
     def __init__(self, data_receiver):
         self.data_receiver = data_receiver
 
@@ -16,13 +8,8 @@ class PeerConnectionSetup:
         """Complete peer setup sequence"""
         print("Setting up peer connection...")
 
-        # Step 1: Exchange bitfield
         available_pieces = self._exchange_bitfield(connection, peer_pieces_handler)
-
-        # Step 2: Send interested message
         self._send_interested(connection)
-
-        # Step 3: Wait for unchoke
         self._wait_for_unchoke(connection)
 
         return available_pieces
@@ -35,20 +22,25 @@ class PeerConnectionSetup:
     def _send_interested(self, connection):
         """Send interested message to peer"""
         print("Sending interested message...")
-        interested_msg = struct.pack(">Ib", 1, 2)  # Length=1, ID=2
+        interested_msg = struct.pack(">Ib", 1, 2)
         connection.sock.sendall(interested_msg)
 
     def _wait_for_unchoke(self, connection):
-        """Wait for peer to unchoke us"""
+        """Wait for peer to unchoke us, safely skipping other messages"""
         print("Waiting for unchoke...")
 
-        # Receive unchoke message (5 bytes total)
-        msg = self.data_receiver._recv_exact(connection.sock, 5)
+        while True:
+            length_bytes = self.data_receiver._recv_exact(connection.sock, 4)
+            msg_length = struct.unpack(">I", length_bytes)[0]
 
-        # Parse message
-        length, msg_id = struct.unpack(">IB", msg)
+            if msg_length == 0:
+                continue
 
-        if msg_id != 1:  # 1 = unchoke message ID
-            raise Exception(f"Expected unchoke (ID=1), got message ID={msg_id}")
+            payload = self.data_receiver._recv_exact(connection.sock, msg_length)
+            msg_id = payload[0]
 
-        print("Peer has unchoked us - ready to download!")
+            if msg_id == 1:
+                print("Peer has unchoked us - ready to download!")
+                break
+            else:
+                print(f"Received message ID {msg_id} while waiting for unchoke. Ignoring.")

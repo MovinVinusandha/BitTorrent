@@ -33,7 +33,13 @@ class HandshakeMsg:
         return handshake_params
 
     def handshake_msg_unpack(self, socket):
-        handshake_reply = socket.recv(68)
+        """Return dict of unpacked handshake message from peer"""
+        handshake_reply = b""
+        while len(handshake_reply) < 68:
+            chunk = socket.recv(68 - len(handshake_reply))
+            if not chunk:
+                raise ConnectionError("Peer closed connection during handshake")
+            handshake_reply += chunk
 
         protocol_str_len, protocol_str, reserved_bytes, info_hash, peer_id = struct.unpack(
             f'b{len(PROTOCOL_STR)}s8s20s20s',
