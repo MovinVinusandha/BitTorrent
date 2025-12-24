@@ -36,6 +36,7 @@ To run this application, you will need
 ```bash
 uv sync
    ```
+---
 
 ## Usage
 
@@ -54,7 +55,9 @@ uv run main.py download <path/to/file.torrent>
 ```
 Note: Downloaded files and their respective directories will be automatically saved to a ./downloads folder in the project root.
 
-## 🐳 Docker Deployment
+---
+
+## Docker Deployment
 
 If you prefer to run the client in an isolated environment without managing Python dependencies, you can use the provided `Dockerfile`.
 
@@ -78,3 +81,8 @@ Explanation of the flags:
 
 * ```-v "$(pwd):/app"``` : Mounts your current directory to the container so it can access your .torrent file.
 * ```-v "$(pwd)/downloads:/app/downloads"``` : Maps your local downloads/ folder to the container's output directory, ensuring downloaded files are saved directly to your computer.
+
+---
+
+## License
+This project is available under the ```GNU GENERAL PUBLIC LICENSE Version 3```.
