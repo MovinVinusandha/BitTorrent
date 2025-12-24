@@ -1,7 +1,7 @@
 [project]
 name = "bittorrent-client"
 version = "0.1.0"
-description = "Add your description here"
+description = "A modular, BEP-compliant BitTorrent client with UDP tracker and multi-file support."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
